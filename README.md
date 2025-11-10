@@ -47,6 +47,14 @@ Hospital-Management-App---V1-/
 ├── models.py           # Database models
 ├── init_db.py          # Database setup script
 ├── requirements.txt    # Python dependencies
+├── templates/          # Jinja2 templates
+│   ├── base.html       # Base template
+│   ├── login.html      # Login page
+│   ├── register.html   # Patient registration
+│   ├── admin/          # Admin templates
+│   ├── doctor/         # Doctor templates
+│   └── patient/        # Patient templates
+├── static/             # Static files (CSS, JS)
 └── README.md          # Project documentation
 ```
 
@@ -57,3 +65,12 @@ Hospital-Management-App---V1-/
 - Defined relationships between tables
 - Programmatic database creation
 - Predefined Admin user creation
+
+### Milestone 2: Authentication and Role-Based Access ✅
+- Implemented Patient registration and login
+- Created Doctor and Admin login (Admin is predefined, no registration allowed)
+- Admin will add Doctor's Details, Doctors cannot register by themselves
+- Redirect users to role-specific dashboards after login (Admin, Doctor, Patient)
+- Session-based authentication with role-based access control
+- Bootstrap-styled login and registration pages
+- Role-specific dashboard templates
