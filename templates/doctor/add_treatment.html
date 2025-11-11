@@ -30,14 +30,36 @@
             <div class="card-body">
                 <form method="POST" action="{{ url_for('doctor_add_treatment', appointment_id=appointment.id) }}">
                     <div class="mb-3">
+                        <label for="visit_type" class="form-label">Visit Type</label>
+                        <select class="form-select" id="visit_type" name="visit_type">
+                            <option value="">Select Visit Type</option>
+                            <option value="In-person" {% if treatment and treatment.visit_type == 'In-person' %}selected{% endif %}>In-person</option>
+                            <option value="Teleconsultation" {% if treatment and treatment.visit_type == 'Teleconsultation' %}selected{% endif %}>Teleconsultation</option>
+                            <option value="Follow-up" {% if treatment and treatment.visit_type == 'Follow-up' %}selected{% endif %}>Follow-up</option>
+                            <option value="Emergency" {% if treatment and treatment.visit_type == 'Emergency' %}selected{% endif %}>Emergency</option>
+                            <option value="Routine Checkup" {% if treatment and treatment.visit_type == 'Routine Checkup' %}selected{% endif %}>Routine Checkup</option>
+                        </select>
+                        <small class="text-muted">Select the type of visit</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="test_done" class="form-label">Test Done</label>
+                        <textarea class="form-control" id="test_done" name="test_done" rows="3" placeholder="e.g., ECG, Blood Test, X-Ray">{{ treatment.test_done if treatment else '' }}</textarea>
+                        <small class="text-muted">Enter tests performed during this visit</small>
+                    </div>
+                    <div class="mb-3">
                         <label for="diagnosis" class="form-label">Diagnosis <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="diagnosis" name="diagnosis" rows="4" required>{{ treatment.diagnosis if treatment else '' }}</textarea>
                         <small class="text-muted">Enter the diagnosis for this appointment</small>
                     </div>
                     <div class="mb-3">
                         <label for="prescription" class="form-label">Prescription</label>
-                        <textarea class="form-control" id="prescription" name="prescription" rows="4">{{ treatment.prescription if treatment else '' }}</textarea>
+                        <textarea class="form-control" id="prescription" name="prescription" rows="4" placeholder="General prescription instructions">{{ treatment.prescription if treatment else '' }}</textarea>
                         <small class="text-muted">Enter any prescriptions or medications</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="medicines" class="form-label">Medicines</label>
+                        <textarea class="form-control" id="medicines" name="medicines" rows="4" placeholder="e.g., Medicine 1 1-0-1, Medicine 2 0-1-1, Medicine 3 1-0-0">{{ treatment.medicines if treatment else '' }}</textarea>
+                        <small class="text-muted">Enter medicines with dosage schedule (format: Medicine Name Morning-Afternoon-Night, e.g., Paracetamol 1-0-1)</small>
                     </div>
                     <div class="mb-3">
                         <label for="notes" class="form-label">Notes</label>

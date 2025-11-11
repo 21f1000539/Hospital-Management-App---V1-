@@ -127,18 +127,40 @@
             </div>
             <div class="modal-body">
                 <table class="table table-borderless">
+                    {% if treatment.visit_type %}
+                    <tr>
+                        <th>Visit Type:</th>
+                        <td>{{ treatment.visit_type }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if treatment.test_done %}
+                    <tr>
+                        <th>Test Done:</th>
+                        <td>{{ treatment.test_done }}</td>
+                    </tr>
+                    {% endif %}
                     <tr>
                         <th>Diagnosis:</th>
                         <td>{{ treatment.diagnosis }}</td>
                     </tr>
+                    {% if treatment.prescription %}
                     <tr>
                         <th>Prescription:</th>
-                        <td>{{ treatment.prescription or 'N/A' }}</td>
+                        <td>{{ treatment.prescription }}</td>
                     </tr>
+                    {% endif %}
+                    {% if treatment.medicines %}
+                    <tr>
+                        <th>Medicines:</th>
+                        <td>{{ treatment.medicines }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if treatment.notes %}
                     <tr>
                         <th>Notes:</th>
-                        <td>{{ treatment.notes or 'N/A' }}</td>
+                        <td>{{ treatment.notes }}</td>
                     </tr>
+                    {% endif %}
                     <tr>
                         <th>Recorded On:</th>
                         <td>{{ treatment.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>

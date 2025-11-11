@@ -11,25 +11,84 @@
 </div>
 
 <div class="row justify-content-center">
-    <div class="col-md-8">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">Availability Schedule (Next 7 Days)</h5>
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('doctor_update_availability') }}">
-                    <div class="mb-3">
-                        <label for="availability" class="form-label">Availability</label>
-                        <textarea class="form-control" id="availability" name="availability" rows="6" placeholder="e.g.,&#10;Monday: 9:00 AM - 5:00 PM&#10;Tuesday: 9:00 AM - 5:00 PM&#10;Wednesday: 9:00 AM - 5:00 PM&#10;Thursday: 9:00 AM - 5:00 PM&#10;Friday: 9:00 AM - 5:00 PM&#10;Saturday: 10:00 AM - 2:00 PM&#10;Sunday: Closed">{{ doctor.availability or '' }}</textarea>
-                        <small class="text-muted">Enter your availability schedule for the next 7 days. Patients will be able to see this when booking appointments.</small>
-                    </div>
                     <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> <strong>Note:</strong> Update your availability regularly so patients know when you're available for appointments.
+                        <i class="bi bi-info-circle"></i> <strong>Note:</strong> Set your availability for the next 7 days. Patients will be able to see available time slots when booking appointments.
                     </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Available</th>
+                                    <th>Morning Start</th>
+                                    <th>Morning End</th>
+                                    <th>Evening Start</th>
+                                    <th>Evening End</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for current_date in dates %}
+                                {% set date_str = current_date.strftime('%Y-%m-%d') %}
+                                {% set date_display = current_date.strftime('%d/%m/%Y') %}
+                                {% set slot = availability_slots.get(current_date) %}
+                                <tr>
+                                    <td><strong>{{ date_display }}</strong><br><small class="text-muted">{{ current_date.strftime('%A') }}</small></td>
+                                    <td>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input availability-checkbox" type="checkbox" 
+                                                   id="available_{{ date_str }}" name="available_{{ date_str }}" 
+                                                   {% if slot and slot.is_available %}checked{% endif %}
+                                                   onchange="toggleTimeSlots('{{ date_str }}', this.checked)">
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="time" class="form-control time-slot" 
+                                               id="morning_start_{{ date_str }}" name="morning_start_{{ date_str }}" 
+                                               value="{% if slot and slot.morning_start %}{{ slot.morning_start.strftime('%H:%M') }}{% else %}08:00{% endif %}"
+                                               {% if not slot or not slot.is_available %}disabled{% endif %}>
+                                    </td>
+                                    <td>
+                                        <input type="time" class="form-control time-slot" 
+                                               id="morning_end_{{ date_str }}" name="morning_end_{{ date_str }}" 
+                                               value="{% if slot and slot.morning_end %}{{ slot.morning_end.strftime('%H:%M') }}{% else %}12:00{% endif %}"
+                                               {% if not slot or not slot.is_available %}disabled{% endif %}>
+                                    </td>
+                                    <td>
+                                        <input type="time" class="form-control time-slot" 
+                                               id="evening_start_{{ date_str }}" name="evening_start_{{ date_str }}" 
+                                               value="{% if slot and slot.evening_start %}{{ slot.evening_start.strftime('%H:%M') }}{% else %}16:00{% endif %}"
+                                               {% if not slot or not slot.is_available %}disabled{% endif %}>
+                                    </td>
+                                    <td>
+                                        <input type="time" class="form-control time-slot" 
+                                               id="evening_end_{{ date_str }}" name="evening_end_{{ date_str }}" 
+                                               value="{% if slot and slot.evening_end %}{{ slot.evening_end.strftime('%H:%M') }}{% else %}21:00{% endif %}"
+                                               {% if not slot or not slot.is_available %}disabled{% endif %}>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mb-3 mt-4">
+                        <label for="availability_text" class="form-label">Additional Availability Notes (Optional)</label>
+                        <textarea class="form-control" id="availability_text" name="availability_text" rows="3" placeholder="e.g., Special availability, holidays, etc.">{{ doctor.availability or '' }}</textarea>
+                        <small class="text-muted">Optional: Add any additional notes about your availability</small>
+                    </div>
+                    
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary">Cancel</a>
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save"></i> Update Availability
+                            <i class="bi bi-save"></i> Save Availability
                         </button>
                     </div>
                 </form>
@@ -39,3 +98,21 @@
 </div>
 {% endblock %}
 
+{% block extra_js %}
+<script>
+    function toggleTimeSlots(dateStr, enabled) {
+        const timeSlots = document.querySelectorAll(`[id$="${dateStr}"]`);
+        timeSlots.forEach(slot => {
+            if (slot.type === 'time') {
+                slot.disabled = !enabled;
+            }
+        });
+    }
+    
+    // Initialize disabled state on page load
+    document.querySelectorAll('.availability-checkbox').forEach(checkbox => {
+        const dateStr = checkbox.id.replace('available_', '');
+        toggleTimeSlots(dateStr, checkbox.checked);
+    });
+</script>
+{% endblock %}

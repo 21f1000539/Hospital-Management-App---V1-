@@ -61,11 +61,28 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="qualifications" class="form-label">Qualifications</label>
+                            <input type="text" class="form-control" id="qualifications" name="qualifications" value="{{ doctor.qualifications or '' }}" placeholder="e.g., MBBS, DM - Medical Oncology">
+                            <small class="text-muted">Enter doctor's qualifications</small>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="experience" class="form-label">Experience (Years)</label>
+                            <input type="number" class="form-control" id="experience" name="experience" value="{{ doctor.experience or '' }}" min="0" max="100" placeholder="e.g., 20">
+                            <small class="text-muted">Years of experience</small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="profile_description" class="form-label">Profile Description</label>
+                        <textarea class="form-control" id="profile_description" name="profile_description" rows="3" placeholder="Brief description about the doctor">{{ doctor.profile_description or '' }}</textarea>
+                        <small class="text-muted">Enter a brief profile description</small>
                     </div>
                     <div class="mb-3">
                         <label for="availability" class="form-label">Availability (Next 7 Days)</label>
                         <textarea class="form-control" id="availability" name="availability" rows="3">{{ doctor.availability or '' }}</textarea>
-                        <small class="text-muted">Enter availability schedule for the next 7 days</small>
+                        <small class="text-muted">Enter availability schedule for the next 7 days. Doctors can update this later with structured time slots.</small>
                     </div>
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <a href="{{ url_for('admin_doctors') }}" class="btn btn-secondary">Cancel</a>

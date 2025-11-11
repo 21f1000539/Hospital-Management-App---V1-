@@ -46,51 +46,77 @@
 
 <div class="card">
     <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">Appointment History</h5>
+        <h5 class="mb-0">Patient History</h5>
     </div>
     <div class="card-body">
         {% if appointments %}
-            {% for appointment in appointments %}
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>{{ appointment.date.strftime('%B %d, %Y') }}</strong> at {{ appointment.time.strftime('%I:%M %p') }}
-                        <span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'primary' if appointment.status == 'Booked' else 'secondary' }} ms-2">
-                            {{ appointment.status }}
-                        </span>
-                    </div>
-                    <a href="{{ url_for('doctor_view_appointment', appointment_id=appointment.id) }}" class="btn btn-sm btn-primary">
-                        <i class="bi bi-eye"></i> View Details
-                    </a>
-                </div>
-                <div class="card-body">
-                    {% if appointment.id in treatment_dict %}
-                        {% set treatment = treatment_dict[appointment.id] %}
-                        <h6>Diagnosis:</h6>
-                        <p>{{ treatment.diagnosis }}</p>
-                        
-                        {% if treatment.prescription %}
-                        <h6>Prescription:</h6>
-                        <p>{{ treatment.prescription }}</p>
-                        {% endif %}
-                        
-                        {% if treatment.notes %}
-                        <h6>Notes:</h6>
-                        <p>{{ treatment.notes }}</p>
-                        {% endif %}
-                        
-                        <small class="text-muted">Recorded on: {{ treatment.created_at.strftime('%Y-%m-%d %I:%M %p') }}</small>
-                    {% else %}
-                        <p class="text-muted">No treatment record available for this appointment.</p>
-                        {% if appointment.status == 'Booked' %}
-                        <a href="{{ url_for('doctor_view_appointment', appointment_id=appointment.id) }}" class="btn btn-sm btn-primary">
-                            <i class="bi bi-plus-circle"></i> Add Treatment
-                        </a>
-                        {% endif %}
-                    {% endif %}
-                </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>Visit No.</th>
+                            <th>Visit Type</th>
+                            <th>Tests Done</th>
+                            <th>Diagnosis</th>
+                            <th>Prescription</th>
+                            <th>Medicines</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appointment in appointments|reverse %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                {% if appointment.id in treatment_dict %}
+                                    {{ treatment_dict[appointment.id].visit_type or 'N/A' }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if appointment.id in treatment_dict %}
+                                    {{ treatment_dict[appointment.id].test_done or 'N/A' }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if appointment.id in treatment_dict %}
+                                    {{ treatment_dict[appointment.id].diagnosis }}
+                                {% else %}
+                                    <span class="text-muted">No diagnosis</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if appointment.id in treatment_dict %}
+                                    {{ treatment_dict[appointment.id].prescription or 'N/A' }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if appointment.id in treatment_dict %}
+                                    {{ treatment_dict[appointment.id].medicines or 'N/A' }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('doctor_view_appointment', appointment_id=appointment.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                                {% if appointment.status == 'Booked' and appointment.id not in treatment_dict %}
+                                <a href="{{ url_for('doctor_add_treatment', appointment_id=appointment.id) }}" class="btn btn-sm btn-success">
+                                    <i class="bi bi-plus-circle"></i> Add Treatment
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            {% endfor %}
         {% else %}
             <p class="text-muted">No appointment history found for this patient.</p>
         {% endif %}

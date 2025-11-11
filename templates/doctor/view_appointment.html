@@ -93,18 +93,40 @@
             </div>
             <div class="card-body">
                 <table class="table table-borderless">
+                    {% if appointment.treatment.visit_type %}
+                    <tr>
+                        <th>Visit Type:</th>
+                        <td>{{ appointment.treatment.visit_type }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if appointment.treatment.test_done %}
+                    <tr>
+                        <th>Test Done:</th>
+                        <td>{{ appointment.treatment.test_done }}</td>
+                    </tr>
+                    {% endif %}
                     <tr>
                         <th>Diagnosis:</th>
                         <td>{{ appointment.treatment.diagnosis }}</td>
                     </tr>
+                    {% if appointment.treatment.prescription %}
                     <tr>
                         <th>Prescription:</th>
-                        <td>{{ appointment.treatment.prescription or 'N/A' }}</td>
+                        <td>{{ appointment.treatment.prescription }}</td>
                     </tr>
+                    {% endif %}
+                    {% if appointment.treatment.medicines %}
+                    <tr>
+                        <th>Medicines:</th>
+                        <td>{{ appointment.treatment.medicines }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if appointment.treatment.notes %}
                     <tr>
                         <th>Notes:</th>
-                        <td>{{ appointment.treatment.notes or 'N/A' }}</td>
+                        <td>{{ appointment.treatment.notes }}</td>
                     </tr>
+                    {% endif %}
                     <tr>
                         <th>Recorded On:</th>
                         <td>{{ appointment.treatment.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>

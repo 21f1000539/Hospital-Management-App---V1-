@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 from database import db
-from models import Admin, Doctor, Patient, Department, Appointment, Treatment
+from models import Admin, Doctor, Patient, Department, Appointment, Treatment, DoctorAvailability
 from functools import wraps
 from datetime import datetime, date, timedelta
 from sqlalchemy import or_, and_, func, extract
@@ -295,6 +295,9 @@ def admin_add_doctor():
         name = request.form.get('name')
         phone = request.form.get('phone')
         specialization = request.form.get('specialization')
+        qualifications = request.form.get('qualifications')
+        experience = request.form.get('experience')
+        profile_description = request.form.get('profile_description')
         department_id = request.form.get('department_id') or None
         availability = request.form.get('availability')
         
@@ -378,6 +381,20 @@ def admin_add_doctor():
             departments = Department.query.all()
             return render_template('admin/add_doctor.html', departments=departments)
         
+        # Validate experience if provided
+        experience_years = None
+        if experience:
+            try:
+                experience_years = int(experience)
+                if experience_years < 0 or experience_years > 100:
+                    flash('Experience must be between 0 and 100 years.', 'danger')
+                    departments = Department.query.all()
+                    return render_template('admin/add_doctor.html', departments=departments)
+            except ValueError:
+                flash('Experience must be a valid number.', 'danger')
+                departments = Department.query.all()
+                return render_template('admin/add_doctor.html', departments=departments)
+        
         try:
             new_doctor = Doctor(
                 username=username,
@@ -386,6 +403,9 @@ def admin_add_doctor():
                 name=name,
                 phone=phone,
                 specialization=specialization,
+                qualifications=qualifications,
+                experience=experience_years,
+                profile_description=profile_description,
                 department_id=int(department_id) if department_id else None,
                 availability=availability,
                 is_active=True
@@ -415,6 +435,16 @@ def admin_edit_doctor(doctor_id):
         doctor.name = request.form.get('name')
         doctor.phone = request.form.get('phone')
         doctor.specialization = request.form.get('specialization')
+        doctor.qualifications = request.form.get('qualifications')
+        experience_str = request.form.get('experience')
+        if experience_str:
+            try:
+                doctor.experience = int(experience_str)
+            except (ValueError, TypeError):
+                doctor.experience = None
+        else:
+            doctor.experience = None
+        doctor.profile_description = request.form.get('profile_description')
         department_id = request.form.get('department_id') or None
         doctor.department_id = int(department_id) if department_id else None
         doctor.availability = request.form.get('availability')
@@ -878,8 +908,11 @@ def doctor_add_treatment(appointment_id):
         return redirect(url_for('doctor_dashboard'))
     
     if request.method == 'POST':
+        visit_type = request.form.get('visit_type')
+        test_done = request.form.get('test_done')
         diagnosis = request.form.get('diagnosis')
         prescription = request.form.get('prescription')
+        medicines = request.form.get('medicines')
         notes = request.form.get('notes')
         
         if not diagnosis:
@@ -892,16 +925,22 @@ def doctor_add_treatment(appointment_id):
             
             if treatment:
                 # Update existing treatment
+                treatment.visit_type = visit_type
+                treatment.test_done = test_done
                 treatment.diagnosis = diagnosis
                 treatment.prescription = prescription
+                treatment.medicines = medicines
                 treatment.notes = notes
                 treatment.updated_at = datetime.utcnow()
             else:
                 # Create new treatment
                 treatment = Treatment(
                     appointment_id=appointment_id,
+                    visit_type=visit_type,
+                    test_done=test_done,
                     diagnosis=diagnosis,
                     prescription=prescription,
+                    medicines=medicines,
                     notes=notes
                 )
                 db.session.add(treatment)
@@ -962,10 +1001,54 @@ def doctor_update_availability():
         return redirect(url_for('login'))
     
     if request.method == 'POST':
-        availability = request.form.get('availability')
+        # Handle structured availability (7-day table format)
+        today = date.today()
+        
+        # Clear existing availability for next 7 days
+        DoctorAvailability.query.filter(
+            DoctorAvailability.doctor_id == doctor_id,
+            DoctorAvailability.date >= today,
+            DoctorAvailability.date <= today + timedelta(days=7)
+        ).delete()
+        
+        # Process availability for each of the next 7 days
+        for i in range(7):
+            current_date = today + timedelta(days=i)
+            date_str = current_date.strftime('%Y-%m-%d')
+            
+            is_available = request.form.get(f'available_{date_str}') == 'on'
+            morning_start = request.form.get(f'morning_start_{date_str}')
+            morning_end = request.form.get(f'morning_end_{date_str}')
+            evening_start = request.form.get(f'evening_start_{date_str}')
+            evening_end = request.form.get(f'evening_end_{date_str}')
+            
+            if is_available:
+                try:
+                    morning_start_time = datetime.strptime(morning_start, '%H:%M').time() if morning_start else None
+                    morning_end_time = datetime.strptime(morning_end, '%H:%M').time() if morning_end else None
+                    evening_start_time = datetime.strptime(evening_start, '%H:%M').time() if evening_start else None
+                    evening_end_time = datetime.strptime(evening_end, '%H:%M').time() if evening_end else None
+                    
+                    availability = DoctorAvailability(
+                        doctor_id=doctor_id,
+                        date=current_date,
+                        morning_start=morning_start_time,
+                        morning_end=morning_end_time,
+                        evening_start=evening_start_time,
+                        evening_end=evening_end_time,
+                        is_available=True
+                    )
+                    db.session.add(availability)
+                except (ValueError, TypeError):
+                    # Skip invalid time formats
+                    pass
+        
+        # Also update text-based availability for backward compatibility
+        availability_text = request.form.get('availability_text')
+        if availability_text:
+            doctor.availability = availability_text
         
         try:
-            doctor.availability = availability
             db.session.commit()
             flash('Availability updated successfully!', 'success')
             return redirect(url_for('doctor_dashboard'))
@@ -973,7 +1056,25 @@ def doctor_update_availability():
             db.session.rollback()
             flash('An error occurred while updating availability.', 'danger')
     
-    return render_template('doctor/availability.html', doctor=doctor)
+    # Get existing availability for next 7 days
+    today = date.today()
+    availability_slots = {}
+    existing_slots = DoctorAvailability.query.filter(
+        DoctorAvailability.doctor_id == doctor_id,
+        DoctorAvailability.date >= today,
+        DoctorAvailability.date <= today + timedelta(days=7)
+    ).all()
+    
+    for slot in existing_slots:
+        availability_slots[slot.date] = slot
+    
+    # Generate dates for next 7 days
+    dates = [today + timedelta(days=i) for i in range(7)]
+    
+    return render_template('doctor/availability.html', 
+                         doctor=doctor, 
+                         dates=dates,
+                         availability_slots=availability_slots)
 
 # Patient Dashboard
 @app.route('/patient/dashboard')
@@ -1132,7 +1233,38 @@ def patient_search_doctors():
 def patient_view_doctor(doctor_id):
     """View doctor details"""
     doctor = Doctor.query.filter_by(id=doctor_id, is_active=True).first_or_404()
-    return render_template('patient/view_doctor.html', doctor=doctor)
+    
+    # Get availability for next 7 days
+    today = date.today()
+    availability_slots = DoctorAvailability.query.filter(
+        DoctorAvailability.doctor_id == doctor_id,
+        DoctorAvailability.date >= today,
+        DoctorAvailability.date <= today + timedelta(days=7)
+    ).order_by(DoctorAvailability.date).all()
+    
+    # Create availability dict for template
+    availability_dict = {slot.date: slot for slot in availability_slots}
+    dates = [today + timedelta(days=i) for i in range(7)]
+    
+    return render_template('patient/view_doctor.html', 
+                         doctor=doctor,
+                         dates=dates,
+                         availability_dict=availability_dict)
+
+# Patient - View Department Details
+@app.route('/patient/departments/<int:department_id>')
+@patient_required
+def patient_view_department(department_id):
+    """View department details with doctors list"""
+    department = Department.query.get_or_404(department_id)
+    doctors = Doctor.query.filter_by(
+        department_id=department_id,
+        is_active=True
+    ).order_by(Doctor.name).all()
+    
+    return render_template('patient/view_department.html',
+                         department=department,
+                         doctors=doctors)
 
 # Helper function to check appointment availability
 def check_appointment_availability(doctor_id, apt_date, apt_time, exclude_appointment_id=None):
