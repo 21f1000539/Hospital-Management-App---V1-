@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Appointment Details - Doctor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-calendar-event"></i> Appointment Details</h2>
+    <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Appointment Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Date:</th>
+                        <td>{{ appointment.date.strftime('%B %d, %Y') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Time:</th>
+                        <td>{{ appointment.time.strftime('%I:%M %p') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Patient:</th>
+                        <td>{{ appointment.patient.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td>
+                            <span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'primary' if appointment.status == 'Booked' else 'secondary' }}">
+                                {{ appointment.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Reason:</th>
+                        <td>{{ appointment.reason or 'N/A' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Patient Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Name:</th>
+                        <td>{{ appointment.patient.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Email:</th>
+                        <td>{{ appointment.patient.email }}</td>
+                    </tr>
+                    <tr>
+                        <th>Phone:</th>
+                        <td>{{ appointment.patient.phone or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date of Birth:</th>
+                        <td>{{ appointment.patient.date_of_birth.strftime('%Y-%m-%d') if appointment.patient.date_of_birth else 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Gender:</th>
+                        <td>{{ appointment.patient.gender or 'N/A' }}</td>
+                    </tr>
+                </table>
+                <div class="mt-3">
+                    <a href="{{ url_for('doctor_view_patient_history', patient_id=appointment.patient.id) }}" class="btn btn-info">
+                        <i class="bi bi-clock-history"></i> View Patient History
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if appointment.treatment %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Treatment Record</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Diagnosis:</th>
+                        <td>{{ appointment.treatment.diagnosis }}</td>
+                    </tr>
+                    <tr>
+                        <th>Prescription:</th>
+                        <td>{{ appointment.treatment.prescription or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Notes:</th>
+                        <td>{{ appointment.treatment.notes or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Recorded On:</th>
+                        <td>{{ appointment.treatment.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                    </tr>
+                </table>
+                <div class="mt-3">
+                    <a href="{{ url_for('doctor_add_treatment', appointment_id=appointment.id) }}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Update Treatment
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0">No Treatment Record</h5>
+            </div>
+            <div class="card-body">
+                <p>No treatment has been recorded for this appointment yet.</p>
+                <a href="{{ url_for('doctor_add_treatment', appointment_id=appointment.id) }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add Treatment
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Actions</h5>
+            </div>
+            <div class="card-body">
+                {% if appointment.status == 'Booked' %}
+                    <form method="POST" action="{{ url_for('doctor_update_appointment_status', appointment_id=appointment.id) }}" class="d-inline">
+                        <input type="hidden" name="status" value="Completed">
+                        <button type="submit" class="btn btn-success" onclick="return confirm('Mark this appointment as Completed?');">
+                            <i class="bi bi-check-circle"></i> Mark as Completed
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('doctor_update_appointment_status', appointment_id=appointment.id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+                        <input type="hidden" name="status" value="Cancelled">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-x-circle"></i> Cancel Appointment
+                        </button>
+                    </form>
+                {% elif appointment.status == 'Completed' %}
+                    <p class="text-muted">This appointment has been completed.</p>
+                {% elif appointment.status == 'Cancelled' %}
+                    <p class="text-muted">This appointment has been cancelled.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

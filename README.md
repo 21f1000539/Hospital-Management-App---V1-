@@ -85,3 +85,14 @@ Hospital-Management-App---V1-/
 - Department management (add, view departments)
 - Patient management (view, edit, blacklist/activate patients)
 - Complete admin navigation in navbar
+
+### Milestone 4: Doctor Dashboard and Appointment/Treatment Management ✅
+- Enhanced doctor dashboard with statistics (today's appointments, upcoming, assigned patients)
+- View all appointments with filtering by status and date
+- View appointment details with patient information
+- Mark appointments as Completed or Cancelled
+- Add/update treatment records (diagnosis, prescription, notes)
+- View complete patient medical history with all appointments and treatments
+- Update doctor availability schedule (next 7 days)
+- Complete doctor navigation in navbar
+- Treatment automatically marks appointment as Completed when added

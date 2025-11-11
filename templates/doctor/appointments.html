@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}My Appointments - Doctor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-calendar-check"></i> My Appointments</h2>
+    <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('doctor_appointments') }}">
+            <div class="row">
+                <div class="col-md-4">
+                    <label for="status" class="form-label">Filter by Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All Statuses</option>
+                        <option value="Booked" {% if status_filter == 'Booked' %}selected{% endif %}>Booked</option>
+                        <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+                        <option value="Cancelled" {% if status_filter == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="date" class="form-label">Filter by Date</label>
+                    <input type="date" class="form-control" id="date" name="date" value="{{ date_filter }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-filter"></i> Filter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">All Appointments</h5>
+    </div>
+    <div class="card-body">
+        {% if appointments %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Patient</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appointment in appointments %}
+                        <tr>
+                            <td>{{ appointment.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ appointment.time.strftime('%I:%M %p') }}</td>
+                            <td>{{ appointment.patient.name }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'primary' if appointment.status == 'Booked' else 'secondary' }}">
+                                    {{ appointment.status }}
+                                </span>
+                            </td>
+                            <td>{{ appointment.reason or 'N/A' }}</td>
+                            <td>
+                                <a href="{{ url_for('doctor_view_appointment', appointment_id=appointment.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">No appointments found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

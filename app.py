@@ -553,7 +553,7 @@ def doctor_dashboard():
     today_appointments = Appointment.query.filter(
         Appointment.doctor_id == doctor_id,
         Appointment.date == today,
-        Appointment.status == 'Booked'
+        Appointment.status.in_(['Booked', 'Completed'])
     ).order_by(Appointment.time).all()
     
     # Get upcoming appointments (next 7 days)
@@ -569,15 +569,210 @@ def doctor_dashboard():
     patient_ids = db.session.query(Appointment.patient_id).filter(
         Appointment.doctor_id == doctor_id
     ).distinct().all()
-    assigned_patients = Patient.query.filter(
-        Patient.id.in_([pid[0] for pid in patient_ids])
-    ).all()
+    assigned_patients = []
+    if patient_ids:
+        assigned_patients = Patient.query.filter(
+            Patient.id.in_([pid[0] for pid in patient_ids])
+        ).all()
+    
+    # Get statistics
+    total_appointments_today = len(today_appointments)
+    completed_today = len([apt for apt in today_appointments if apt.status == 'Completed'])
+    upcoming_count = len(upcoming_appointments)
     
     return render_template('doctor/dashboard.html',
                          doctor=doctor,
                          today_appointments=today_appointments,
                          upcoming_appointments=upcoming_appointments,
-                         assigned_patients=assigned_patients)
+                         assigned_patients=assigned_patients,
+                         total_appointments_today=total_appointments_today,
+                         completed_today=completed_today,
+                         upcoming_count=upcoming_count)
+
+# Doctor - View All Appointments
+@app.route('/doctor/appointments')
+@doctor_required
+def doctor_appointments():
+    """View all appointments for doctor"""
+    doctor_id = session.get('user_id')
+    status_filter = request.args.get('status', '')
+    date_filter = request.args.get('date', '')
+    
+    appointments = Appointment.query.filter(Appointment.doctor_id == doctor_id)
+    
+    if status_filter:
+        appointments = appointments.filter(Appointment.status == status_filter)
+    
+    if date_filter:
+        try:
+            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            appointments = appointments.filter(Appointment.date == filter_date)
+        except ValueError:
+            pass
+    
+    appointments = appointments.order_by(Appointment.date.desc(), Appointment.time.desc()).all()
+    
+    return render_template('doctor/appointments.html',
+                         appointments=appointments,
+                         status_filter=status_filter,
+                         date_filter=date_filter)
+
+# Doctor - View Appointment Details
+@app.route('/doctor/appointments/<int:appointment_id>')
+@doctor_required
+def doctor_view_appointment(appointment_id):
+    """View appointment details"""
+    doctor_id = session.get('user_id')
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    # Verify appointment belongs to this doctor
+    if appointment.doctor_id != doctor_id:
+        flash('You do not have permission to view this appointment.', 'danger')
+        return redirect(url_for('doctor_dashboard'))
+    
+    return render_template('doctor/view_appointment.html', appointment=appointment)
+
+# Doctor - Update Appointment Status
+@app.route('/doctor/appointments/<int:appointment_id>/update-status', methods=['POST'])
+@doctor_required
+def doctor_update_appointment_status(appointment_id):
+    """Update appointment status (Completed or Cancelled)"""
+    doctor_id = session.get('user_id')
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    # Verify appointment belongs to this doctor
+    if appointment.doctor_id != doctor_id:
+        flash('You do not have permission to update this appointment.', 'danger')
+        return redirect(url_for('doctor_dashboard'))
+    
+    new_status = request.form.get('status')
+    
+    if new_status not in ['Completed', 'Cancelled']:
+        flash('Invalid status.', 'danger')
+        return redirect(url_for('doctor_view_appointment', appointment_id=appointment_id))
+    
+    try:
+        appointment.status = new_status
+        appointment.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        flash(f'Appointment status updated to {new_status}.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while updating the appointment.', 'danger')
+    
+    return redirect(url_for('doctor_view_appointment', appointment_id=appointment_id))
+
+# Doctor - Add Treatment
+@app.route('/doctor/appointments/<int:appointment_id>/treatment', methods=['GET', 'POST'])
+@doctor_required
+def doctor_add_treatment(appointment_id):
+    """Add treatment for an appointment"""
+    doctor_id = session.get('user_id')
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    # Verify appointment belongs to this doctor
+    if appointment.doctor_id != doctor_id:
+        flash('You do not have permission to add treatment for this appointment.', 'danger')
+        return redirect(url_for('doctor_dashboard'))
+    
+    if request.method == 'POST':
+        diagnosis = request.form.get('diagnosis')
+        prescription = request.form.get('prescription')
+        notes = request.form.get('notes')
+        
+        if not diagnosis:
+            flash('Diagnosis is required.', 'danger')
+            return render_template('doctor/add_treatment.html', appointment=appointment)
+        
+        try:
+            # Check if treatment already exists
+            treatment = Treatment.query.filter_by(appointment_id=appointment_id).first()
+            
+            if treatment:
+                # Update existing treatment
+                treatment.diagnosis = diagnosis
+                treatment.prescription = prescription
+                treatment.notes = notes
+                treatment.updated_at = datetime.utcnow()
+            else:
+                # Create new treatment
+                treatment = Treatment(
+                    appointment_id=appointment_id,
+                    diagnosis=diagnosis,
+                    prescription=prescription,
+                    notes=notes
+                )
+                db.session.add(treatment)
+                # Mark appointment as completed
+                appointment.status = 'Completed'
+                appointment.updated_at = datetime.utcnow()
+            
+            db.session.commit()
+            flash('Treatment recorded successfully!', 'success')
+            return redirect(url_for('doctor_view_appointment', appointment_id=appointment_id))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while recording treatment.', 'danger')
+    
+    # Check if treatment already exists
+    treatment = Treatment.query.filter_by(appointment_id=appointment_id).first()
+    return render_template('doctor/add_treatment.html', appointment=appointment, treatment=treatment)
+
+# Doctor - View Patient History
+@app.route('/doctor/patients/<int:patient_id>/history')
+@doctor_required
+def doctor_view_patient_history(patient_id):
+    """View complete patient medical history"""
+    doctor_id = session.get('user_id')
+    patient = Patient.query.get_or_404(patient_id)
+    
+    # Get all appointments for this patient with this doctor
+    appointments = Appointment.query.filter(
+        Appointment.patient_id == patient_id,
+        Appointment.doctor_id == doctor_id
+    ).order_by(Appointment.date.desc(), Appointment.time.desc()).all()
+    
+    # Get treatments for these appointments
+    treatment_dict = {}
+    if appointments:
+        appointment_ids = [apt.id for apt in appointments]
+        treatments = Treatment.query.filter(
+            Treatment.appointment_id.in_(appointment_ids)
+        ).all()
+        # Create a dictionary for easy lookup
+        treatment_dict = {t.appointment_id: t for t in treatments}
+    
+    return render_template('doctor/patient_history.html',
+                         patient=patient,
+                         appointments=appointments,
+                         treatment_dict=treatment_dict)
+
+# Doctor - Update Availability
+@app.route('/doctor/availability', methods=['GET', 'POST'])
+@doctor_required
+def doctor_update_availability():
+    """Update doctor availability for next 7 days"""
+    doctor_id = session.get('user_id')
+    doctor = Doctor.query.get(doctor_id)
+    
+    if not doctor:
+        flash('Doctor not found.', 'danger')
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        availability = request.form.get('availability')
+        
+        try:
+            doctor.availability = availability
+            db.session.commit()
+            flash('Availability updated successfully!', 'success')
+            return redirect(url_for('doctor_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while updating availability.', 'danger')
+    
+    return render_template('doctor/availability.html', doctor=doctor)
 
 # Patient Dashboard
 @app.route('/patient/dashboard')
