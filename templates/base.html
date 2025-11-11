@@ -211,6 +211,24 @@
             max-width: 1400px;
         }
 
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .container {
+                max-width: 100%;
+                padding: 0 1rem;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .stat-card h2 {
+                font-size: 2.25rem;
+            }
+            
+            .card-header {
+                padding: 1rem 1.25rem;
+            }
+        }
+
         @media (max-width: 768px) {
             .stat-card h2 {
                 font-size: 2rem;
@@ -218,6 +236,57 @@
             
             .navbar-brand {
                 font-size: 1.25rem;
+            }
+
+            .navbar-nav .nav-link {
+                padding: 0.5rem 0.75rem !important;
+                margin: 0.125rem 0;
+            }
+
+            .card {
+                margin-bottom: 1rem;
+            }
+
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .table-responsive {
+                font-size: 0.9rem;
+            }
+
+            .page-header {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stat-card h2 {
+                font-size: 1.75rem;
+            }
+
+            .stat-card .card-body {
+                padding: 1rem;
+            }
+
+            .card-header {
+                padding: 0.75rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .form-control, .form-select {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.9rem;
+            }
+
+            .navbar-brand {
+                font-size: 1.1rem;
             }
         }
 
