@@ -3,191 +3,185 @@
 {% block title %}Admin Dashboard - Hospital Management System{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<div class="hero-section mb-5">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="hero-title">
-                    <span class="highlight">Admin</span> Dashboard
-                </h1>
-                <p class="hero-subtitle">Manage doctors, patients, appointments, and system operations</p>
-            </div>
-            <div class="col-md-4 text-end">
-                <i class="bi bi-speedometer2" style="font-size: 5rem; opacity: 0.2; color: #3b82f6;"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="container">
-    <h2 class="dashboard-heading">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Admin Dashboard</h1>
+        <p>Manage doctors, patients, appointments, and system operations</p>
+    </div>
+
+    <!-- Overview & Statistics -->
+    <h2 class="section-heading">
         <i class="bi bi-bar-chart-line"></i> Overview & Statistics
     </h2>
 
-<div class="row">
-    <div class="col-md-3">
-        <div class="card stat-card text-white" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 64, 175, 0.2) 100%);">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Total Doctors</h6>
-                        <h2 class="mb-0">{{ total_doctors }}</h2>
-                        <small>Active: {{ active_doctors }}</small>
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="card-title">Total Doctors</div>
+                            <div class="card-value">{{ total_doctors }}</div>
+                            <small class="text-muted">Active: {{ active_doctors }}</small>
+                        </div>
+                        <i class="bi bi-person-badge card-icon"></i>
                     </div>
-                    <i class="bi bi-person-badge fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="card-title">Total Patients</div>
+                            <div class="card-value">{{ total_patients }}</div>
+                            <small class="text-muted">Active: {{ active_patients }}</small>
+                        </div>
+                        <i class="bi bi-people card-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="card-title">Total Appointments</div>
+                            <div class="card-value">{{ total_appointments }}</div>
+                        </div>
+                        <i class="bi bi-calendar-check card-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="card-title">Upcoming</div>
+                            <div class="card-value">{{ upcoming_appointments }}</div>
+                        </div>
+                        <i class="bi bi-calendar-event card-icon"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card stat-card text-white" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Total Patients</h6>
-                        <h2 class="mb-0">{{ total_patients }}</h2>
-                        <small>Active: {{ active_patients }}</small>
-                    </div>
-                    <i class="bi bi-people fs-1 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card text-white" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(8, 145, 178, 0.2) 100%);">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Total Appointments</h6>
-                        <h2 class="mb-0">{{ total_appointments }}</h2>
-                    </div>
-                    <i class="bi bi-calendar-check fs-1 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card text-white" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.2) 100%);">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Upcoming</h6>
-                        <h2 class="mb-0">{{ upcoming_appointments }}</h2>
-                    </div>
-                    <i class="bi bi-calendar-event fs-1 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-lightning-charge-fill"></i> Quick Actions</h5>
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge-fill"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ url_for('admin_add_doctor') }}" class="btn btn-primary w-100">
+                                <i class="bi bi-person-plus"></i> Add Doctor
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ url_for('admin_appointments') }}" class="btn btn-info w-100">
+                                <i class="bi bi-list-ul"></i> View All Appointments
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ url_for('admin_patients') }}" class="btn btn-success w-100">
+                                <i class="bi bi-people"></i> Manage Patients
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ url_for('admin_doctors') }}" class="btn btn-warning w-100">
+                                <i class="bi bi-person-badge"></i> Manage Doctors
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ url_for('admin_search') }}" class="btn btn-secondary w-100">
+                                <i class="bi bi-search"></i> Search
+                            </a>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <a href="{{ url_for('admin_departments') }}" class="btn btn-dark w-100">
+                                <i class="bi bi-building"></i> Departments
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <a href="{{ url_for('admin_add_doctor') }}" class="btn btn-primary w-100">
-                            <i class="bi bi-person-plus"></i> Add Doctor
-                        </a>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Appointments</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_appointments %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Patient</th>
+                                        <th>Doctor</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for appointment in recent_appointments %}
+                                    <tr>
+                                        <td>{{ appointment.date.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ appointment.time.strftime('%I:%M %p') }}</td>
+                                        <td>{{ appointment.patient.name }}</td>
+                                        <td>Dr. {{ appointment.doctor.name }}</td>
+                                        <td><span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'primary' if appointment.status == 'Booked' else 'secondary' }}">{{ appointment.status }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center mt-2">
+                            <a href="{{ url_for('admin_appointments') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No recent appointments.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Appointments Trend (Last 7 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="appointmentsChart"></canvas>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <a href="{{ url_for('admin_appointments') }}" class="btn btn-info w-100">
-                            <i class="bi bi-list-ul"></i> View All Appointments
-                        </a>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <a href="{{ url_for('admin_patients') }}" class="btn btn-success w-100">
-                            <i class="bi bi-people"></i> Manage Patients
-                        </a>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <a href="{{ url_for('admin_doctors') }}" class="btn btn-warning w-100">
-                            <i class="bi bi-person-badge"></i> Manage Doctors
-                        </a>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <a href="{{ url_for('admin_search') }}" class="btn btn-secondary w-100">
-                            <i class="bi bi-search"></i> Search
-                        </a>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <a href="{{ url_for('admin_departments') }}" class="btn btn-dark w-100">
-                            <i class="bi bi-building"></i> Departments
-                        </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart-fill"></i> Appointment Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Appointments</h5>
-            </div>
-            <div class="card-body">
-                {% if recent_appointments %}
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Patient</th>
-                                    <th>Doctor</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for appointment in recent_appointments %}
-                                <tr>
-                                    <td>{{ appointment.date.strftime('%Y-%m-%d') }}</td>
-                                    <td>{{ appointment.time.strftime('%I:%M %p') }}</td>
-                                    <td>{{ appointment.patient.name }}</td>
-                                    <td>Dr. {{ appointment.doctor.name }}</td>
-                                    <td><span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'primary' if appointment.status == 'Booked' else 'secondary' }}">{{ appointment.status }}</span></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="text-center mt-2">
-                        <a href="{{ url_for('admin_appointments') }}" class="btn btn-sm btn-outline-primary">View All</a>
-                    </div>
-                {% else %}
-                    <p class="text-muted mb-0">No recent appointments.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Appointments Trend (Last 7 Days)</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="appointmentsChart" height="100"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-pie-chart-fill"></i> Appointment Status Distribution</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="statusChart" height="100"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
 </div>
 {% endblock %}
 
@@ -202,15 +196,15 @@
             datasets: [{
                 label: 'Appointments',
                 data: {{ appointments_by_date|tojson }},
-                borderColor: 'rgb(59, 130, 246)',
-                backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                borderColor: 'rgb(37, 99, 235)',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
                 tension: 0.4,
                 fill: true
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     display: false
@@ -220,19 +214,7 @@
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        stepSize: 1,
-                        color: 'rgba(209, 213, 219, 0.7)'
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.05)'
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: 'rgba(209, 213, 219, 0.7)'
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.05)'
+                        stepSize: 1
                     }
                 }
             }
@@ -248,28 +230,20 @@
             datasets: [{
                 data: {{ status_data|tojson }},
                 backgroundColor: [
-                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(37, 99, 235, 0.8)',
                     'rgba(16, 185, 129, 0.8)',
-                    'rgba(148, 163, 184, 0.8)'
+                    'rgba(100, 116, 139, 0.8)'
                 ],
                 borderWidth: 2,
-                borderColor: 'rgba(17, 24, 39, 0.5)'
+                borderColor: '#ffffff'
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: 'rgba(209, 213, 219, 0.9)',
-                        padding: 15,
-                        font: {
-                            size: 12,
-                            weight: '600'
-                        }
-                    }
+                    position: 'bottom'
                 }
             }
         }

@@ -3,219 +3,215 @@
 {% block title %}Patient Dashboard - Hospital Management System{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<div class="hero-section mb-5">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="hero-title">
-                    <span class="highlight">Patient</span> Dashboard
-                </h1>
-                <p class="hero-subtitle">Manage your appointments, view treatment history, and search for doctors</p>
+<div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1>Patient Dashboard</h1>
+                <p>Manage your appointments, view treatment history, and search for doctors</p>
             </div>
-            <div class="col-md-4 text-end">
-                <div class="d-flex flex-column align-items-end gap-3">
-                    <span class="badge fs-6 px-3 py-2" style="background: rgba(16, 185, 129, 0.3); backdrop-filter: blur(10px); border: 1px solid rgba(16, 185, 129, 0.5);">{{ patient.name }}</span>
-                    <a href="{{ url_for('patient_profile') }}" class="btn btn-outline-primary">
-                        <i class="bi bi-person-circle"></i> My Profile
-                    </a>
-                </div>
+            <div>
+                <span class="badge bg-success fs-6 px-3 py-2">{{ patient.name }}</span>
+                <a href="{{ url_for('patient_profile') }}" class="btn btn-outline-primary ms-2">
+                    <i class="bi bi-person-circle"></i> My Profile
+                </a>
             </div>
         </div>
     </div>
-</div>
 
-<div class="container">
-    <h2 class="dashboard-heading">
+    <!-- Overview & Appointments -->
+    <h2 class="section-heading">
         <i class="bi bi-heart-pulse"></i> Overview & Appointments
     </h2>
 
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card stat-card text-white" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 64, 175, 0.2) 100%);">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Upcoming Appointments</h6>
-                        <h2 class="mb-0">{{ upcoming_count }}</h2>
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="card-title">Upcoming Appointments</div>
+                            <div class="card-value">{{ upcoming_count }}</div>
+                        </div>
+                        <i class="bi bi-calendar-check card-icon"></i>
                     </div>
-                    <i class="bi bi-calendar-check fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="card-title">Past Appointments</div>
+                            <div class="card-value">{{ past_count }}</div>
+                        </div>
+                        <i class="bi bi-calendar-history card-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="card-title">Available Doctors</div>
+                            <div class="card-value">{{ doctors|length }}</div>
+                        </div>
+                        <i class="bi bi-person-badge card-icon"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card stat-card text-white" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(8, 145, 178, 0.2) 100%);">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Past Appointments</h6>
-                        <h2 class="mb-0">{{ past_count }}</h2>
-                    </div>
-                    <i class="bi bi-calendar-history fs-1 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card stat-card text-white" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-subtitle mb-2">Available Doctors</h6>
-                        <h2 class="mb-0">{{ doctors|length }}</h2>
-                    </div>
-                    <i class="bi bi-person-badge fs-1 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-calendar-check-fill"></i> Upcoming Appointments</h5>
-            </div>
-            <div class="card-body">
-                {% if upcoming_appointments %}
-                    <div class="list-group">
-                        {% for appointment in upcoming_appointments %}
-                        <a href="{{ url_for('patient_view_appointment', appointment_id=appointment.id) }}" class="list-group-item list-group-item-action">
-                            <div>
-                                <strong>{{ appointment.date.strftime('%B %d, %Y') }}</strong>
-                                <br>
-                                <small class="text-muted">{{ appointment.time.strftime('%I:%M %p') }}</small>
-                                <br>
-                                <small>Dr. {{ appointment.doctor.name }}</small>
-                                <br>
-                                <span class="badge bg-primary">{{ appointment.status }}</span>
-                            </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-calendar-check-fill"></i> Upcoming Appointments</h5>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_appointments %}
+                        <div class="list-group">
+                            {% for appointment in upcoming_appointments %}
+                            <a href="{{ url_for('patient_view_appointment', appointment_id=appointment.id) }}" class="list-group-item list-group-item-action">
+                                <div>
+                                    <strong>{{ appointment.date.strftime('%B %d, %Y') }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ appointment.time.strftime('%I:%M %p') }}</small>
+                                    <br>
+                                    <small>Dr. {{ appointment.doctor.name }}</small>
+                                    <br>
+                                    <span class="badge bg-primary">{{ appointment.status }}</span>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No upcoming appointments.</p>
+                    {% endif %}
+                    <div class="mt-3">
+                        <a href="{{ url_for('patient_search_doctors') }}" class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-plus-circle"></i> Book Appointment
                         </a>
-                        {% endfor %}
                     </div>
-                {% else %}
-                    <p class="text-muted mb-0">No upcoming appointments.</p>
-                {% endif %}
-                <div class="mt-3">
-                    <a href="{{ url_for('patient_search_doctors') }}" class="btn btn-primary btn-sm w-100">
-                        <i class="bi bi-plus-circle"></i> Book Appointment
-                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Appointment History</h5>
+                </div>
+                <div class="card-body">
+                    {% if past_appointments %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Doctor</th>
+                                        <th>Status</th>
+                                        <th>Treatment</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for appointment in past_appointments %}
+                                    <tr>
+                                        <td>{{ appointment.date.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ appointment.time.strftime('%I:%M %p') }}</td>
+                                        <td>Dr. {{ appointment.doctor.name }}</td>
+                                        <td><span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'secondary' }}">{{ appointment.status }}</span></td>
+                                        <td>
+                                            {% if appointment.treatment %}
+                                                <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#treatmentModal{{ appointment.id }}">
+                                                    View Treatment
+                                                </button>
+                                            {% else %}
+                                                <span class="text-muted">No treatment recorded</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('patient_view_appointment', appointment_id=appointment.id) }}" class="btn btn-sm btn-info">
+                                                <i class="bi bi-eye"></i> View Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">No past appointments.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Appointment History</h5>
-            </div>
-            <div class="card-body">
-                {% if past_appointments %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Doctor</th>
-                                    <th>Status</th>
-                                    <th>Treatment</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for appointment in past_appointments %}
-                                <tr>
-                                    <td>{{ appointment.date.strftime('%Y-%m-%d') }}</td>
-                                    <td>{{ appointment.time.strftime('%I:%M %p') }}</td>
-                                    <td>Dr. {{ appointment.doctor.name }}</td>
-                                    <td><span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'secondary' }}">{{ appointment.status }}</span></td>
-                                    <td>
-                                        {% if appointment.treatment %}
-                                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#treatmentModal{{ appointment.id }}">
-                                                View Treatment
-                                            </button>
-                                        {% else %}
-                                            <span class="text-muted">No treatment recorded</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('patient_view_appointment', appointment_id=appointment.id) }}" class="btn btn-sm btn-info">
-                                            <i class="bi bi-eye"></i> View Details
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <p class="text-muted mb-0">No past appointments.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-building-fill"></i> Departments & Specializations</h5>
-            </div>
-            <div class="card-body">
-                {% if departments %}
-                    <div class="row">
-                        {% for department in departments %}
-                        <div class="col-md-4 mb-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6 class="card-title">{{ department.name }}</h6>
-                                    <p class="card-text text-muted small">{{ department.description or 'No description' }}</p>
-                                    <small class="text-muted">
-                                        <i class="bi bi-person-badge"></i> {{ department.doctors|length }} doctor(s)
-                                    </small>
-                                    <div class="mt-2">
-                                        <a href="{{ url_for('patient_view_department', department_id=department.id) }}" class="btn btn-sm btn-primary">
-                                            <i class="bi bi-eye"></i> View Details
-                                        </a>
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-building-fill"></i> Departments & Specializations</h5>
+                </div>
+                <div class="card-body">
+                    {% if departments %}
+                        <div class="row">
+                            {% for department in departments %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ department.name }}</h6>
+                                        <p class="card-text text-muted small">{{ department.description or 'No description' }}</p>
+                                        <small class="text-muted">
+                                            <i class="bi bi-person-badge"></i> {{ department.doctors|length }} doctor(s)
+                                        </small>
+                                        <div class="mt-2">
+                                            <a href="{{ url_for('patient_view_department', department_id=department.id) }}" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-eye"></i> View Details
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted mb-0">No departments available.</p>
+                    {% endif %}
+                    <div class="mt-3 text-center">
+                        <a href="{{ url_for('patient_search_doctors') }}" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Search Doctors
+                        </a>
                     </div>
-                {% else %}
-                    <p class="text-muted mb-0">No departments available.</p>
-                {% endif %}
-                <div class="mt-3 text-center">
-                    <a href="{{ url_for('patient_search_doctors') }}" class="btn btn-primary">
-                        <i class="bi bi-search"></i> Search Doctors
-                    </a>
                 </div>
             </div>
         </div>
     </div>
-</div>
-</div>
 
-{% if treatment_dates %}
-<div class="container">
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Treatment History</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="treatmentChart" height="50"></canvas>
+    {% if treatment_dates %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Treatment History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="treatmentChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
-{% endif %}
 
 <!-- Treatment Modals for Past Appointments -->
 {% for appointment in past_appointments %}
@@ -225,7 +221,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="bi bi-file-medical"></i> Treatment Record - {{ appointment.date.strftime('%Y-%m-%d') }}</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <table class="table table-borderless">
@@ -282,7 +278,7 @@
                 </table>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -304,7 +300,7 @@
                 label: 'Treatments',
                 data: {{ treatment_count|tojson }},
                 borderColor: 'rgb(16, 185, 129)',
-                backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
                 tension: 0.4,
                 fill: true,
                 pointRadius: 5,
@@ -313,7 +309,7 @@
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     display: false
@@ -323,19 +319,7 @@
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        stepSize: 1,
-                        color: 'rgba(209, 213, 219, 0.7)'
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.05)'
-                    }
-                },
-                x: {
-                    ticks: {
-                        color: 'rgba(209, 213, 219, 0.7)'
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.05)'
+                        stepSize: 1
                     }
                 }
             }

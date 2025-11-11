@@ -3,81 +3,83 @@
 {% block title %}Register - Hospital Management System{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-7">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0"><i class="bi bi-person-plus"></i> Patient Registration</h4>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('register') }}" class="needs-validation" novalidate id="registerForm">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="username" name="username" required minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+" title="Username can only contain letters, numbers, and underscores">
-                            <div class="invalid-feedback">Please provide a valid username (3-50 characters, letters, numbers, and underscores only).</div>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-person-plus"></i> Patient Registration</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('register') }}" class="needs-validation" novalidate id="registerForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="username" name="username" required minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+" title="Username can only contain letters, numbers, and underscores">
+                                <div class="invalid-feedback">Please provide a valid username (3-50 characters, letters, numbers, and underscores only).</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email" required pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" title="Please enter a valid email address">
+                                <div class="invalid-feedback">Please provide a valid email address.</div>
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-                            <input type="email" class="form-control" id="email" name="email" required pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" title="Please enter a valid email address">
-                            <div class="invalid-feedback">Please provide a valid email address.</div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="password" name="password" required minlength="6" maxlength="100">
+                                <div class="invalid-feedback">Password must be at least 6 characters long.</div>
+                                <small class="form-text text-muted">Password must be at least 6 characters.</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="confirm_password" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                <div class="invalid-feedback">Passwords do not match.</div>
+                            </div>
                         </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" required minlength="2" maxlength="100" pattern="[a-zA-Z\s]+" title="Name can only contain letters and spaces">
+                                <div class="invalid-feedback">Please provide a valid name (2-100 characters, letters and spaces only).</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" pattern="[0-9]{10,15}" title="Phone number should be 10-15 digits">
+                                <div class="invalid-feedback">Please provide a valid phone number (10-15 digits).</div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <textarea class="form-control" id="address" name="address" rows="2" maxlength="500"></textarea>
+                            <small class="form-text text-muted">Maximum 500 characters.</small>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="date_of_birth" class="form-label">Date of Birth</label>
+                                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
+                                <div class="invalid-feedback">Please provide a valid date of birth.</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="gender" class="form-label">Gender</label>
+                                <select class="form-select" id="gender" name="gender">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-person-plus"></i> Register
+                            </button>
+                        </div>
+                    </form>
+                    <hr>
+                    <div class="text-center">
+                        <p class="mb-0">Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" id="password" name="password" required minlength="6" maxlength="100">
-                            <div class="invalid-feedback">Password must be at least 6 characters long.</div>
-                            <small class="form-text text-muted">Password must be at least 6 characters.</small>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="confirm_password" class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                            <div class="invalid-feedback">Passwords do not match.</div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="name" class="form-label">Full Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" required minlength="2" maxlength="100" pattern="[a-zA-Z\s]+" title="Name can only contain letters and spaces">
-                            <div class="invalid-feedback">Please provide a valid name (2-100 characters, letters and spaces only).</div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="phone" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phone" name="phone" pattern="[0-9]{10,15}" title="Phone number should be 10-15 digits">
-                            <div class="invalid-feedback">Please provide a valid phone number (10-15 digits).</div>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="address" class="form-label">Address</label>
-                        <textarea class="form-control" id="address" name="address" rows="2" maxlength="500"></textarea>
-                        <small class="form-text text-muted">Maximum 500 characters.</small>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="date_of_birth" class="form-label">Date of Birth</label>
-                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
-                            <div class="invalid-feedback">Please provide a valid date of birth.</div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="gender" class="form-label">Gender</label>
-                            <select class="form-select" id="gender" name="gender">
-                                <option value="">Select Gender</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-person-plus"></i> Register
-                        </button>
-                    </div>
-                </form>
-                <hr>
-                <div class="text-center">
-                    <p class="mb-0" style="color: var(--text-primary);">Already have an account? <a href="{{ url_for('login') }}" style="color: #60a5fa; text-decoration: none;">Login</a></p>
                 </div>
             </div>
         </div>
@@ -103,4 +105,3 @@
     document.getElementById('date_of_birth').max = new Date().toISOString().split('T')[0];
 </script>
 {% endblock %}
-

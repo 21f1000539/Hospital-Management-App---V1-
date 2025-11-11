@@ -3,56 +3,57 @@
 {% block title %}Login - Hospital Management System{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0"><i class="bi bi-box-arrow-in-right"></i> Login</h4>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('login') }}" class="needs-validation" novalidate>
-                    <div class="mb-3">
-                        <label for="role" class="form-label">Login As</label>
-                        <select class="form-select" id="role" name="role" required>
-                            <option value="">Select Role</option>
-                            <option value="admin">Admin</option>
-                            <option value="doctor">Doctor</option>
-                            <option value="patient">Patient</option>
-                        </select>
-                        <div class="invalid-feedback">Please select a role.</div>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-box-arrow-in-right"></i> Login</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('login') }}" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label for="role" class="form-label">Login As</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="">Select Role</option>
+                                <option value="admin">Admin</option>
+                                <option value="doctor">Doctor</option>
+                                <option value="patient">Patient</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a role.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+" title="Username can only contain letters, numbers, and underscores">
+                            <div class="invalid-feedback">Please provide a valid username (3-50 characters, letters, numbers, and underscores only).</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required minlength="6">
+                            <div class="invalid-feedback">Password must be at least 6 characters long.</div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-box-arrow-in-right"></i> Login
+                            </button>
+                        </div>
+                    </form>
+                    <hr>
+                    <div class="text-center">
+                        <p class="mb-0">Don't have an account? <a href="{{ url_for('register') }}">Register as Patient</a></p>
+                        <small class="text-muted">Note: Only patients can register. Doctors are added by Admin.</small>
                     </div>
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="username" name="username" required minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+" title="Username can only contain letters, numbers, and underscores">
-                        <div class="invalid-feedback">Please provide a valid username (3-50 characters, letters, numbers, and underscores only).</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required minlength="6">
-                        <div class="invalid-feedback">Password must be at least 6 characters long.</div>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-box-arrow-in-right"></i> Login
-                        </button>
-                    </div>
-                </form>
-                <hr>
-                <div class="text-center">
-                    <p class="mb-0" style="color: var(--text-primary);">Don't have an account? <a href="{{ url_for('register') }}" style="color: #60a5fa; text-decoration: none;">Register as Patient</a></p>
-                    <small class="text-muted">Note: Only patients can register. Doctors are added by Admin.</small>
                 </div>
             </div>
-        </div>
-        <div class="card mt-3">
-            <div class="card-body">
-                <h6 class="card-title">Default Credentials</h6>
-                <small class="text-muted">
-                    <strong>Admin:</strong> username: admin, password: admin123
-                </small>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="card-title">Default Credentials</h6>
+                    <small class="text-muted">
+                        <strong>Admin:</strong> username: admin, password: admin123
+                    </small>
+                </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
-
