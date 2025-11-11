@@ -3,19 +3,36 @@
 {% block title %}Doctor Dashboard - Hospital Management System{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-person-badge"></i> Doctor Dashboard</h2>
-    <div>
-        <span class="badge bg-primary fs-6 me-2">Dr. {{ doctor.name }}</span>
-        <a href="{{ url_for('doctor_update_availability') }}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-calendar-event"></i> Update Availability
-        </a>
+<!-- Hero Section -->
+<div class="hero-section mb-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="hero-title">
+                    <span class="highlight">Doctor</span> Dashboard
+                </h1>
+                <p class="hero-subtitle">Manage your appointments, patients, and availability</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="d-flex flex-column align-items-end gap-3">
+                    <span class="badge fs-6 px-3 py-2" style="background: rgba(59, 130, 246, 0.3); backdrop-filter: blur(10px); border: 1px solid rgba(59, 130, 246, 0.5);">Dr. {{ doctor.name }}</span>
+                    <a href="{{ url_for('doctor_update_availability') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-calendar-event"></i> Update Availability
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
+<div class="container">
+    <h2 class="dashboard-heading">
+        <i class="bi bi-clipboard-pulse"></i> Overview & Statistics
+    </h2>
+
 <div class="row mb-4">
     <div class="col-md-4">
-        <div class="card stat-card bg-info text-white">
+        <div class="card stat-card text-white" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(8, 145, 178, 0.2) 100%);">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -29,7 +46,7 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card stat-card bg-primary text-white">
+        <div class="card stat-card text-white" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(30, 64, 175, 0.2) 100%);">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -42,7 +59,7 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card stat-card bg-success text-white">
+        <div class="card stat-card text-white" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -59,8 +76,8 @@
 <div class="row">
     <div class="col-md-4">
         <div class="card">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="bi bi-calendar-day"></i> Today's Appointments</h5>
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-calendar-day-fill"></i> Today's Appointments</h5>
             </div>
             <div class="card-body">
                 {% if today_appointments %}
@@ -90,9 +107,9 @@
     </div>
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="bi bi-calendar-week"></i> Upcoming Appointments (Next 7 Days)</h5>
-                <a href="{{ url_for('doctor_appointments') }}" class="btn btn-sm btn-light">View All</a>
+                <a href="{{ url_for('doctor_appointments') }}" class="btn btn-sm btn-outline-primary">View All</a>
             </div>
             <div class="card-body">
                 {% if upcoming_appointments %}
@@ -133,8 +150,8 @@
 <div class="row mt-4">
     <div class="col-md-6">
         <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Appointments Distribution (Last 7 Days)</h5>
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> Appointments Distribution (Last 7 Days)</h5>
             </div>
             <div class="card-body">
                 <canvas id="appointmentsChart" height="100"></canvas>
@@ -143,8 +160,8 @@
     </div>
     <div class="col-md-6">
         <div class="card">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Appointment Status</h5>
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart-fill"></i> Appointment Status</h5>
             </div>
             <div class="card-body">
                 <canvas id="statusChart" height="100"></canvas>
@@ -156,8 +173,8 @@
 <div class="row mt-4">
     <div class="col-12">
         <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="bi bi-people"></i> Assigned Patients</h5>
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people-fill"></i> Assigned Patients</h5>
             </div>
             <div class="card-body">
                 {% if assigned_patients %}
@@ -196,6 +213,7 @@
         </div>
     </div>
 </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -209,8 +227,8 @@
             datasets: [{
                 label: 'Appointments',
                 data: {{ appointments_by_date|tojson }},
-                backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                borderColor: 'rgba(102, 126, 234, 1)',
+                backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                borderColor: 'rgba(59, 130, 246, 1)',
                 borderWidth: 1
             }]
         },
@@ -221,7 +239,19 @@
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        stepSize: 1
+                        stepSize: 1,
+                        color: 'rgba(209, 213, 219, 0.7)'
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: 'rgba(209, 213, 219, 0.7)'
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.05)'
                     }
                 }
             }
@@ -237,12 +267,12 @@
             datasets: [{
                 data: [{{ booked_count }}, {{ completed_count }}, {{ cancelled_count }}],
                 backgroundColor: [
-                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(59, 130, 246, 0.8)',
                     'rgba(16, 185, 129, 0.8)',
                     'rgba(148, 163, 184, 0.8)'
                 ],
                 borderWidth: 2,
-                borderColor: '#fff'
+                borderColor: 'rgba(17, 24, 39, 0.5)'
             }]
         },
         options: {
@@ -250,7 +280,15 @@
             maintainAspectRatio: true,
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        color: 'rgba(209, 213, 219, 0.9)',
+                        padding: 15,
+                        font: {
+                            size: 12,
+                            weight: '600'
+                        }
+                    }
                 }
             }
         }
