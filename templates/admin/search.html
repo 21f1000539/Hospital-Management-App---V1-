@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Search - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-search"></i> Search</h2>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('admin_search') }}">
+            <div class="row">
+                <div class="col-md-8">
+                    <input type="text" class="form-control" name="q" placeholder="Search by name, username, email, phone, specialization, or ID..." value="{{ query }}">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" name="type">
+                        <option value="all" {% if search_type == 'all' %}selected{% endif %}>All</option>
+                        <option value="patients" {% if search_type == 'patients' %}selected{% endif %}>Patients</option>
+                        <option value="doctors" {% if search_type == 'doctors' %}selected{% endif %}>Doctors</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if query %}
+<div class="row">
+    {% if search_type in ['all', 'patients'] %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Patients ({{ results.patients|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if results.patients %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for patient in results.patients %}
+                                <tr>
+                                    <td>{{ patient.id }}</td>
+                                    <td>{{ patient.name }}</td>
+                                    <td>{{ patient.email }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin_view_patient', patient_id=patient.id) }}" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No patients found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if search_type in ['all', 'doctors'] %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Doctors ({{ results.doctors|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if results.doctors %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Specialization</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doctor in results.doctors %}
+                                <tr>
+                                    <td>{{ doctor.id }}</td>
+                                    <td>{{ doctor.name }}</td>
+                                    <td>{{ doctor.specialization }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin_edit_doctor', doctor_id=doctor.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No doctors found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center">
+        <p class="text-muted">Enter a search query to find patients or doctors.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

@@ -183,18 +183,358 @@ def admin_dashboard():
     """Admin dashboard"""
     # Get statistics
     total_doctors = Doctor.query.count()
+    active_doctors = Doctor.query.filter_by(is_active=True).count()
     total_patients = Patient.query.count()
+    active_patients = Patient.query.filter_by(is_active=True).count()
     total_appointments = Appointment.query.count()
     upcoming_appointments = Appointment.query.filter(
         Appointment.date >= date.today(),
         Appointment.status == 'Booked'
     ).count()
     
+    # Get recent appointments
+    recent_appointments = Appointment.query.order_by(
+        Appointment.date.desc(), Appointment.time.desc()
+    ).limit(5).all()
+    
     return render_template('admin/dashboard.html',
                          total_doctors=total_doctors,
+                         active_doctors=active_doctors,
                          total_patients=total_patients,
+                         active_patients=active_patients,
                          total_appointments=total_appointments,
-                         upcoming_appointments=upcoming_appointments)
+                         upcoming_appointments=upcoming_appointments,
+                         recent_appointments=recent_appointments)
+
+# Admin - Doctor Management
+@app.route('/admin/doctors')
+@admin_required
+def admin_doctors():
+    """View all doctors"""
+    doctors = Doctor.query.order_by(Doctor.name).all()
+    departments = Department.query.all()
+    return render_template('admin/doctors.html', doctors=doctors, departments=departments)
+
+@app.route('/admin/doctors/add', methods=['GET', 'POST'])
+@admin_required
+def admin_add_doctor():
+    """Add a new doctor"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        email = request.form.get('email')
+        name = request.form.get('name')
+        phone = request.form.get('phone')
+        specialization = request.form.get('specialization')
+        department_id = request.form.get('department_id') or None
+        availability = request.form.get('availability')
+        
+        if not username or not password or not email or not name or not specialization:
+            flash('Please fill in all required fields.', 'danger')
+            departments = Department.query.all()
+            return render_template('admin/add_doctor.html', departments=departments)
+        
+        # Check if username already exists
+        if Doctor.query.filter_by(username=username).first():
+            flash('Username already exists. Please choose another.', 'danger')
+            departments = Department.query.all()
+            return render_template('admin/add_doctor.html', departments=departments)
+        
+        # Check if email already exists
+        if Doctor.query.filter_by(email=email).first():
+            flash('Email already exists. Please use another email.', 'danger')
+            departments = Department.query.all()
+            return render_template('admin/add_doctor.html', departments=departments)
+        
+        try:
+            new_doctor = Doctor(
+                username=username,
+                password=generate_password_hash(password),
+                email=email,
+                name=name,
+                phone=phone,
+                specialization=specialization,
+                department_id=int(department_id) if department_id else None,
+                availability=availability,
+                is_active=True
+            )
+            db.session.add(new_doctor)
+            db.session.commit()
+            
+            flash(f'Doctor {name} added successfully!', 'success')
+            return redirect(url_for('admin_doctors'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while adding the doctor. Please try again.', 'danger')
+            departments = Department.query.all()
+            return render_template('admin/add_doctor.html', departments=departments)
+    
+    departments = Department.query.all()
+    return render_template('admin/add_doctor.html', departments=departments)
+
+@app.route('/admin/doctors/<int:doctor_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_doctor(doctor_id):
+    """Edit a doctor"""
+    doctor = Doctor.query.get_or_404(doctor_id)
+    
+    if request.method == 'POST':
+        doctor.email = request.form.get('email')
+        doctor.name = request.form.get('name')
+        doctor.phone = request.form.get('phone')
+        doctor.specialization = request.form.get('specialization')
+        department_id = request.form.get('department_id') or None
+        doctor.department_id = int(department_id) if department_id else None
+        doctor.availability = request.form.get('availability')
+        
+        # Update password if provided
+        new_password = request.form.get('password')
+        if new_password:
+            doctor.password = generate_password_hash(new_password)
+        
+        try:
+            db.session.commit()
+            flash(f'Doctor {doctor.name} updated successfully!', 'success')
+            return redirect(url_for('admin_doctors'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while updating the doctor. Please try again.', 'danger')
+    
+    departments = Department.query.all()
+    return render_template('admin/edit_doctor.html', doctor=doctor, departments=departments)
+
+@app.route('/admin/doctors/<int:doctor_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_doctor(doctor_id):
+    """Delete or blacklist a doctor"""
+    doctor = Doctor.query.get_or_404(doctor_id)
+    action = request.form.get('action')
+    
+    try:
+        if action == 'blacklist':
+            doctor.is_active = False
+            flash(f'Doctor {doctor.name} has been blacklisted.', 'warning')
+        elif action == 'activate':
+            doctor.is_active = True
+            flash(f'Doctor {doctor.name} has been activated.', 'success')
+        elif action == 'delete':
+            # Check if doctor has appointments
+            appointments = Appointment.query.filter_by(doctor_id=doctor_id).count()
+            if appointments > 0:
+                flash('Cannot delete doctor with existing appointments. Blacklist instead.', 'danger')
+                return redirect(url_for('admin_doctors'))
+            db.session.delete(doctor)
+            flash(f'Doctor {doctor.name} has been deleted.', 'success')
+        
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred. Please try again.', 'danger')
+    
+    return redirect(url_for('admin_doctors'))
+
+# Admin - Patient Management
+@app.route('/admin/patients')
+@admin_required
+def admin_patients():
+    """View all patients"""
+    search_query = request.args.get('search', '')
+    patients = Patient.query
+    
+    if search_query:
+        search_filters = [
+            Patient.name.contains(search_query),
+            Patient.username.contains(search_query),
+            Patient.email.contains(search_query),
+            Patient.phone.contains(search_query)
+        ]
+        # Add ID filter if search query is a number
+        if search_query.isdigit():
+            search_filters.append(Patient.id == int(search_query))
+        
+        patients = patients.filter(or_(*search_filters))
+    
+    patients = patients.order_by(Patient.name).all()
+    return render_template('admin/patients.html', patients=patients, search_query=search_query)
+
+@app.route('/admin/patients/<int:patient_id>')
+@admin_required
+def admin_view_patient(patient_id):
+    """View patient details"""
+    patient = Patient.query.get_or_404(patient_id)
+    appointments = Appointment.query.filter_by(patient_id=patient_id).order_by(
+        Appointment.date.desc(), Appointment.time.desc()
+    ).all()
+    return render_template('admin/view_patient.html', patient=patient, appointments=appointments)
+
+@app.route('/admin/patients/<int:patient_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_patient(patient_id):
+    """Edit a patient"""
+    patient = Patient.query.get_or_404(patient_id)
+    
+    if request.method == 'POST':
+        patient.email = request.form.get('email')
+        patient.name = request.form.get('name')
+        patient.phone = request.form.get('phone')
+        patient.address = request.form.get('address')
+        patient.gender = request.form.get('gender')
+        
+        date_of_birth = request.form.get('date_of_birth')
+        if date_of_birth:
+            try:
+                patient.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+            except ValueError:
+                flash('Invalid date format.', 'danger')
+                return render_template('admin/edit_patient.html', patient=patient)
+        
+        # Update password if provided
+        new_password = request.form.get('password')
+        if new_password:
+            patient.password = generate_password_hash(new_password)
+        
+        try:
+            db.session.commit()
+            flash(f'Patient {patient.name} updated successfully!', 'success')
+            return redirect(url_for('admin_view_patient', patient_id=patient_id))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while updating the patient. Please try again.', 'danger')
+    
+    return render_template('admin/edit_patient.html', patient=patient)
+
+@app.route('/admin/patients/<int:patient_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_patient(patient_id):
+    """Delete or blacklist a patient"""
+    patient = Patient.query.get_or_404(patient_id)
+    action = request.form.get('action')
+    
+    try:
+        if action == 'blacklist':
+            patient.is_active = False
+            flash(f'Patient {patient.name} has been blacklisted.', 'warning')
+        elif action == 'activate':
+            patient.is_active = True
+            flash(f'Patient {patient.name} has been activated.', 'success')
+        elif action == 'delete':
+            # Check if patient has appointments
+            appointments = Appointment.query.filter_by(patient_id=patient_id).count()
+            if appointments > 0:
+                flash('Cannot delete patient with existing appointments. Blacklist instead.', 'danger')
+                return redirect(url_for('admin_patients'))
+            db.session.delete(patient)
+            flash(f'Patient {patient.name} has been deleted.', 'success')
+        
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred. Please try again.', 'danger')
+    
+    return redirect(url_for('admin_patients'))
+
+# Admin - Appointment Management
+@app.route('/admin/appointments')
+@admin_required
+def admin_appointments():
+    """View all appointments"""
+    status_filter = request.args.get('status', '')
+    date_filter = request.args.get('date', '')
+    
+    appointments = Appointment.query
+    
+    if status_filter:
+        appointments = appointments.filter(Appointment.status == status_filter)
+    
+    if date_filter:
+        try:
+            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            appointments = appointments.filter(Appointment.date == filter_date)
+        except ValueError:
+            pass
+    
+    appointments = appointments.order_by(Appointment.date.desc(), Appointment.time.desc()).all()
+    
+    return render_template('admin/appointments.html', 
+                         appointments=appointments,
+                         status_filter=status_filter,
+                         date_filter=date_filter)
+
+# Admin - Search
+@app.route('/admin/search')
+@admin_required
+def admin_search():
+    """Search for patients and doctors"""
+    query = request.args.get('q', '')
+    search_type = request.args.get('type', 'all')
+    
+    results = {
+        'patients': [],
+        'doctors': []
+    }
+    
+    if query:
+        if search_type in ['all', 'patients']:
+            patient_filters = [
+                Patient.name.contains(query),
+                Patient.username.contains(query),
+                Patient.email.contains(query),
+                Patient.phone.contains(query)
+            ]
+            if query.isdigit():
+                patient_filters.append(Patient.id == int(query))
+            results['patients'] = Patient.query.filter(or_(*patient_filters)).all()
+        
+        if search_type in ['all', 'doctors']:
+            doctor_filters = [
+                Doctor.name.contains(query),
+                Doctor.username.contains(query),
+                Doctor.specialization.contains(query),
+                Doctor.email.contains(query)
+            ]
+            if query.isdigit():
+                doctor_filters.append(Doctor.id == int(query))
+            results['doctors'] = Doctor.query.filter(or_(*doctor_filters)).all()
+    
+    return render_template('admin/search.html', results=results, query=query, search_type=search_type)
+
+# Admin - Department Management
+@app.route('/admin/departments')
+@admin_required
+def admin_departments():
+    """View all departments"""
+    departments = Department.query.order_by(Department.name).all()
+    return render_template('admin/departments.html', departments=departments)
+
+@app.route('/admin/departments/add', methods=['GET', 'POST'])
+@admin_required
+def admin_add_department():
+    """Add a new department"""
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        
+        if not name:
+            flash('Department name is required.', 'danger')
+            return render_template('admin/add_department.html')
+        
+        # Check if department already exists
+        if Department.query.filter_by(name=name).first():
+            flash('Department already exists.', 'danger')
+            return render_template('admin/add_department.html')
+        
+        try:
+            new_department = Department(name=name, description=description)
+            db.session.add(new_department)
+            db.session.commit()
+            
+            flash(f'Department {name} added successfully!', 'success')
+            return redirect(url_for('admin_departments'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while adding the department. Please try again.', 'danger')
+    
+    return render_template('admin/add_department.html')
 
 # Doctor Dashboard
 @app.route('/doctor/dashboard')

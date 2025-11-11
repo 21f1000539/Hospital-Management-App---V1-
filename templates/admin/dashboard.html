@@ -15,6 +15,7 @@
                     <div>
                         <h6 class="card-subtitle mb-2">Total Doctors</h6>
                         <h2 class="mb-0">{{ total_doctors }}</h2>
+                        <small>Active: {{ active_doctors }}</small>
                     </div>
                     <i class="bi bi-person-badge fs-1 opacity-50"></i>
                 </div>
@@ -28,6 +29,7 @@
                     <div>
                         <h6 class="card-subtitle mb-2">Total Patients</h6>
                         <h2 class="mb-0">{{ total_patients }}</h2>
+                        <small>Active: {{ active_patients }}</small>
                     </div>
                     <i class="bi bi-people fs-1 opacity-50"></i>
                 </div>
@@ -63,58 +65,86 @@
 </div>
 
 <div class="row mt-4">
-    <div class="col-12">
+    <div class="col-md-6">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header bg-primary text-white">
                 <h5 class="mb-0"><i class="bi bi-list-task"></i> Quick Actions</h5>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <a href="#" class="btn btn-primary w-100">
+                    <div class="col-md-6 mb-3">
+                        <a href="{{ url_for('admin_add_doctor') }}" class="btn btn-primary w-100">
                             <i class="bi bi-person-plus"></i> Add Doctor
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="#" class="btn btn-info w-100">
+                    <div class="col-md-6 mb-3">
+                        <a href="{{ url_for('admin_appointments') }}" class="btn btn-info w-100">
                             <i class="bi bi-list-ul"></i> View All Appointments
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="#" class="btn btn-success w-100">
-                            <i class="bi bi-search"></i> Search Patients
+                    <div class="col-md-6 mb-3">
+                        <a href="{{ url_for('admin_patients') }}" class="btn btn-success w-100">
+                            <i class="bi bi-people"></i> Manage Patients
                         </a>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="#" class="btn btn-warning w-100">
-                            <i class="bi bi-search"></i> Search Doctors
+                    <div class="col-md-6 mb-3">
+                        <a href="{{ url_for('admin_doctors') }}" class="btn btn-warning w-100">
+                            <i class="bi bi-person-badge"></i> Manage Doctors
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <a href="{{ url_for('admin_search') }}" class="btn btn-secondary w-100">
+                            <i class="bi bi-search"></i> Search
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <a href="{{ url_for('admin_departments') }}" class="btn btn-dark w-100">
+                            <i class="bi bi-building"></i> Departments
                         </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-
-<div class="row mt-4">
-    <div class="col-12">
+    <div class="col-md-6">
         <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Admin Functions</h5>
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Appointments</h5>
             </div>
             <div class="card-body">
-                <p>Welcome to the Admin Dashboard. Here you can:</p>
-                <ul>
-                    <li>Manage doctors (add, update, delete)</li>
-                    <li>View and manage all appointments</li>
-                    <li>Search for patients and doctors</li>
-                    <li>Blacklist/remove doctors and patients</li>
-                    <li>View system statistics</li>
-                </ul>
-                <p class="text-muted"><small>Note: Full functionality will be available in the Admin Management milestone.</small></p>
+                {% if recent_appointments %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Patient</th>
+                                    <th>Doctor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for appointment in recent_appointments %}
+                                <tr>
+                                    <td>{{ appointment.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ appointment.time.strftime('%I:%M %p') }}</td>
+                                    <td>{{ appointment.patient.name }}</td>
+                                    <td>Dr. {{ appointment.doctor.name }}</td>
+                                    <td><span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'primary' if appointment.status == 'Booked' else 'secondary' }}">{{ appointment.status }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-2">
+                        <a href="{{ url_for('admin_appointments') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No recent appointments.</p>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
-

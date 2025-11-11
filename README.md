@@ -74,3 +74,14 @@ Hospital-Management-App---V1-/
 - Session-based authentication with role-based access control
 - Bootstrap-styled login and registration pages
 - Role-specific dashboard templates
+
+### Milestone 3: Admin Dashboard and Management ✅
+- Dashboard showing total doctors, patients, and appointments with statistics
+- Add and update doctor profiles (name, specialization, department, availability)
+- View all appointments (upcoming and past) with filtering by status and date
+- Search patients by name, ID, email, or contact information
+- Search doctors by name, specialization, or ID
+- Blacklist/remove doctors and patients from the system
+- Department management (add, view departments)
+- Patient management (view, edit, blacklist/activate patients)
+- Complete admin navigation in navbar
