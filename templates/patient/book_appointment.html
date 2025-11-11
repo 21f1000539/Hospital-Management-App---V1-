@@ -35,10 +35,11 @@
                 <h5 class="mb-0">Appointment Details</h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ url_for('patient_book_appointment', doctor_id=doctor.id) }}">
+                <form method="POST" action="{{ url_for('patient_book_appointment', doctor_id=doctor.id) }}" class="needs-validation" novalidate id="bookAppointmentForm">
                     <div class="mb-3">
                         <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" id="date" name="date" required value="{{ selected_date }}" onchange="window.location.href='{{ url_for('patient_book_appointment', doctor_id=doctor.id) }}?date=' + this.value">
+                        <div class="invalid-feedback">Please select a valid date.</div>
                         <small class="text-muted">Appointments can be booked up to 7 days in advance</small>
                     </div>
                     {% if booked_appointments %}
@@ -57,11 +58,13 @@
                     <div class="mb-3">
                         <label for="time" class="form-label">Time <span class="text-danger">*</span></label>
                         <input type="time" class="form-control" id="time" name="time" required value="{{ selected_time or '' }}">
+                        <div class="invalid-feedback">Please select a time.</div>
                         <small class="text-muted">Select your preferred time (avoid booked slots above)</small>
                     </div>
                     <div class="mb-3">
                         <label for="reason" class="form-label">Reason for Visit</label>
-                        <textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Brief reason for the appointment"></textarea>
+                        <textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Brief reason for the appointment" maxlength="500"></textarea>
+                        <small class="text-muted">Maximum 500 characters.</small>
                     </div>
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> <strong>Note:</strong> Please ensure the selected time slot is available. If the time is already booked, you'll be notified and can choose another time.
@@ -82,11 +85,58 @@
 {% block extra_js %}
 <script>
     // Set minimum date to today
-    document.getElementById('date').min = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('date');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.min = today;
+    
     // Set maximum date to 7 days from today
     const maxDate = new Date();
     maxDate.setDate(maxDate.getDate() + 7);
-    document.getElementById('date').max = maxDate.toISOString().split('T')[0];
+    dateInput.max = maxDate.toISOString().split('T')[0];
+    
+    // Validate time slot is not in the past for today's date
+    const timeInput = document.getElementById('time');
+    const form = document.getElementById('bookAppointmentForm');
+    
+    form.addEventListener('submit', function(event) {
+        const selectedDate = new Date(dateInput.value);
+        const selectedTime = timeInput.value;
+        const today = new Date();
+        
+        // If booking for today, check if time is in the past
+        if (selectedDate.toDateString() === today.toDateString()) {
+            const now = new Date();
+            const [hours, minutes] = selectedTime.split(':');
+            const appointmentTime = new Date();
+            appointmentTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            
+            if (appointmentTime < now) {
+                event.preventDefault();
+                event.stopPropagation();
+                timeInput.setCustomValidity('Cannot book appointments in the past');
+                timeInput.classList.add('is-invalid');
+            } else {
+                timeInput.setCustomValidity('');
+            }
+        }
+        
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+    
+    // Clear time validation when date or time changes
+    dateInput.addEventListener('change', function() {
+        timeInput.setCustomValidity('');
+        timeInput.classList.remove('is-invalid');
+    });
+    
+    timeInput.addEventListener('change', function() {
+        this.setCustomValidity('');
+        this.classList.remove('is-invalid');
+    });
 </script>
 {% endblock %}
 

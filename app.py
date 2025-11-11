@@ -5,6 +5,7 @@ from models import Admin, Doctor, Patient, Department, Appointment, Treatment
 from functools import wraps
 from datetime import datetime, date, timedelta
 from sqlalchemy import or_, and_, func, extract
+import re
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
@@ -116,14 +117,46 @@ def register():
         date_of_birth = request.form.get('date_of_birth')
         gender = request.form.get('gender')
         
-        # Validation
+        # Backend Validation
+        # Check required fields
         if not username or not password or not email or not name:
             flash('Please fill in all required fields.', 'danger')
+            return render_template('register.html')
+        
+        # Validate username format
+        if len(username) < 3 or len(username) > 50:
+            flash('Username must be between 3 and 50 characters.', 'danger')
+            return render_template('register.html')
+        
+        if not username.replace('_', '').isalnum():
+            flash('Username can only contain letters, numbers, and underscores.', 'danger')
+            return render_template('register.html')
+        
+        # Validate password
+        if len(password) < 6:
+            flash('Password must be at least 6 characters long.', 'danger')
             return render_template('register.html')
         
         if password != confirm_password:
             flash('Passwords do not match.', 'danger')
             return render_template('register.html')
+        
+        # Validate email format
+        email_pattern = r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
+        if not re.match(email_pattern, email.lower()):
+            flash('Please provide a valid email address.', 'danger')
+            return render_template('register.html')
+        
+        # Validate name
+        if len(name) < 2 or len(name) > 100:
+            flash('Name must be between 2 and 100 characters.', 'danger')
+            return render_template('register.html')
+        
+        # Validate phone if provided
+        if phone:
+            if not phone.isdigit() or len(phone) < 10 or len(phone) > 15:
+                flash('Phone number must be 10-15 digits.', 'danger')
+                return render_template('register.html')
         
         # Check if username already exists
         if Patient.query.filter_by(username=username).first():
@@ -135,14 +168,28 @@ def register():
             flash('Email already exists. Please use another email.', 'danger')
             return render_template('register.html')
         
-        # Parse date of birth
+        # Parse and validate date of birth
         dob = None
         if date_of_birth:
             try:
                 dob = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+                # Validate date is not in the future
+                if dob > date.today():
+                    flash('Date of birth cannot be in the future.', 'danger')
+                    return render_template('register.html')
+                # Validate reasonable age (not more than 150 years old)
+                age = (date.today() - dob).days / 365.25
+                if age > 150:
+                    flash('Please provide a valid date of birth.', 'danger')
+                    return render_template('register.html')
             except ValueError:
                 flash('Invalid date format.', 'danger')
                 return render_template('register.html')
+        
+        # Validate address length if provided
+        if address and len(address) > 500:
+            flash('Address must be less than 500 characters.', 'danger')
+            return render_template('register.html')
         
         # Create new patient
         try:
@@ -251,8 +298,71 @@ def admin_add_doctor():
         department_id = request.form.get('department_id') or None
         availability = request.form.get('availability')
         
+        # Backend Validation
         if not username or not password or not email or not name or not specialization:
             flash('Please fill in all required fields.', 'danger')
+            departments = Department.query.all()
+            return render_template('admin/add_doctor.html', departments=departments)
+        
+        # Validate username format
+        if len(username) < 3 or len(username) > 50:
+            flash('Username must be between 3 and 50 characters.', 'danger')
+            departments = Department.query.all()
+            return render_template('admin/add_doctor.html', departments=departments)
+        
+        if not username.replace('_', '').isalnum():
+            flash('Username can only contain letters, numbers, and underscores.', 'danger')
+            departments = Department.query.all()
+            return render_template('admin/add_doctor.html', departments=departments)
+        
+        # Validate password
+        if len(password) < 6:
+            flash('Password must be at least 6 characters long.', 'danger')
+            departments = Department.query.all()
+            return render_template('admin/add_doctor.html', departments=departments)
+        
+        # Validate email format
+        email_pattern = r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
+        if not re.match(email_pattern, email.lower()):
+            flash('Please provide a valid email address.', 'danger')
+            departments = Department.query.all()
+            return render_template('admin/add_doctor.html', departments=departments)
+        
+        # Validate name
+        if len(name) < 2 or len(name) > 100:
+            flash('Name must be between 2 and 100 characters.', 'danger')
+            departments = Department.query.all()
+            return render_template('admin/add_doctor.html', departments=departments)
+        
+        # Validate specialization
+        if len(specialization) < 2 or len(specialization) > 100:
+            flash('Specialization must be between 2 and 100 characters.', 'danger')
+            departments = Department.query.all()
+            return render_template('admin/add_doctor.html', departments=departments)
+        
+        # Validate phone if provided
+        if phone:
+            if not phone.isdigit() or len(phone) < 10 or len(phone) > 15:
+                flash('Phone number must be 10-15 digits.', 'danger')
+                departments = Department.query.all()
+                return render_template('admin/add_doctor.html', departments=departments)
+        
+        # Validate department_id if provided
+        if department_id:
+            try:
+                department_id = int(department_id)
+                if not Department.query.get(department_id):
+                    flash('Invalid department selected.', 'danger')
+                    departments = Department.query.all()
+                    return render_template('admin/add_doctor.html', departments=departments)
+            except ValueError:
+                flash('Invalid department ID.', 'danger')
+                departments = Department.query.all()
+                return render_template('admin/add_doctor.html', departments=departments)
+        
+        # Validate availability length if provided
+        if availability and len(availability) > 500:
+            flash('Availability must be less than 500 characters.', 'danger')
             departments = Department.query.all()
             return render_template('admin/add_doctor.html', departments=departments)
         
