@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Appointment Details - Patient{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-calendar-event"></i> Appointment Details</h2>
+    <a href="{{ url_for('patient_dashboard') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Appointment Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Date:</th>
+                        <td>{{ appointment.date.strftime('%B %d, %Y') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Time:</th>
+                        <td>{{ appointment.time.strftime('%I:%M %p') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Doctor:</th>
+                        <td>Dr. {{ appointment.doctor.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Specialization:</th>
+                        <td>{{ appointment.doctor.specialization }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td>
+                            <span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'primary' if appointment.status == 'Booked' else 'secondary' }}">
+                                {{ appointment.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Reason:</th>
+                        <td>{{ appointment.reason or 'N/A' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Actions</h5>
+            </div>
+            <div class="card-body">
+                {% if appointment.status == 'Booked' %}
+                    <a href="{{ url_for('patient_reschedule_appointment', appointment_id=appointment.id) }}" class="btn btn-warning w-100 mb-2">
+                        <i class="bi bi-calendar-event"></i> Reschedule Appointment
+                    </a>
+                    <form method="POST" action="{{ url_for('patient_cancel_appointment', appointment_id=appointment.id) }}" onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="bi bi-x-circle"></i> Cancel Appointment
+                        </button>
+                    </form>
+                {% elif appointment.status == 'Completed' %}
+                    <p class="text-muted">This appointment has been completed.</p>
+                {% elif appointment.status == 'Cancelled' %}
+                    <p class="text-muted">This appointment has been cancelled.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if appointment.treatment %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Treatment Record</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Diagnosis:</th>
+                        <td>{{ appointment.treatment.diagnosis }}</td>
+                    </tr>
+                    {% if appointment.treatment.prescription %}
+                    <tr>
+                        <th>Prescription:</th>
+                        <td>{{ appointment.treatment.prescription }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if appointment.treatment.notes %}
+                    <tr>
+                        <th>Notes:</th>
+                        <td>{{ appointment.treatment.notes }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Recorded On:</th>
+                        <td>{{ appointment.treatment.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

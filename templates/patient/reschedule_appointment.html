@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Reschedule Appointment - Patient{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-calendar-event"></i> Reschedule Appointment</h2>
+    <a href="{{ url_for('patient_view_appointment', appointment_id=appointment.id) }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Appointment
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Current Appointment</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Date:</strong> {{ appointment.date.strftime('%B %d, %Y') }}</p>
+                <p><strong>Time:</strong> {{ appointment.time.strftime('%I:%M %p') }}</p>
+                <p><strong>Doctor:</strong> Dr. {{ appointment.doctor.name }}</p>
+                <p><strong>Specialization:</strong> {{ appointment.doctor.specialization }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">New Appointment Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('patient_reschedule_appointment', appointment_id=appointment.id) }}">
+                    <div class="mb-3">
+                        <label for="date" class="form-label">New Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                        <small class="text-muted">Appointments can be rescheduled up to 7 days in advance</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="time" class="form-label">New Time <span class="text-danger">*</span></label>
+                        <input type="time" class="form-control" id="time" name="time" required>
+                        <small class="text-muted">Select your preferred new time</small>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> <strong>Note:</strong> Please ensure the selected time slot is available. If the time is already booked, you'll be notified and can choose another time.
+                    </div>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('patient_view_appointment', appointment_id=appointment.id) }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-calendar-check"></i> Reschedule Appointment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Set minimum date to today
+    document.getElementById('date').min = new Date().toISOString().split('T')[0];
+    // Set maximum date to 7 days from today
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 7);
+    document.getElementById('date').max = maxDate.toISOString().split('T')[0];
+</script>
+{% endblock %}
+

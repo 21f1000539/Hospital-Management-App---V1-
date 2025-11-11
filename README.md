@@ -96,3 +96,17 @@ Hospital-Management-App---V1-/
 - Update doctor availability schedule (next 7 days)
 - Complete doctor navigation in navbar
 - Treatment automatically marks appointment as Completed when added
+
+### Milestone 5: Patient Dashboard and Appointment System ✅
+- Enhanced patient dashboard with statistics (upcoming, past appointments, available doctors)
+- Patient profile management (update name, email, phone, address, date of birth, gender, password)
+- Search doctors by name, specialization, or department
+- View doctor details with availability information
+- Book appointments with double booking prevention (checks for existing appointments)
+- Reschedule appointments (change date and time with validation)
+- Cancel appointments (only booked appointments can be cancelled)
+- View appointment details with treatment records (diagnosis, prescription, notes)
+- View past appointments with treatment history
+- Complete patient navigation in navbar
+- Appointment booking limited to next 7 days
+- Automatic conflict detection and prevention

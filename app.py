@@ -789,7 +789,7 @@ def patient_dashboard():
     # Get all departments
     departments = Department.query.all()
     
-    # Get all doctors with their availability
+    # Get all active doctors
     doctors = Doctor.query.filter_by(is_active=True).all()
     
     # Get upcoming appointments
@@ -811,12 +811,292 @@ def patient_dashboard():
     # Remove duplicates and filter out upcoming booked appointments
     past_appointments = [apt for apt in past_appointments if apt.status != 'Booked' or apt.date < today]
     
+    # Get statistics
+    upcoming_count = len(upcoming_appointments)
+    past_count = len(past_appointments)
+    
     return render_template('patient/dashboard.html',
                          patient=patient,
                          departments=departments,
                          doctors=doctors,
                          upcoming_appointments=upcoming_appointments,
-                         past_appointments=past_appointments)
+                         past_appointments=past_appointments,
+                         upcoming_count=upcoming_count,
+                         past_count=past_count)
+
+# Patient - Profile Management
+@app.route('/patient/profile', methods=['GET', 'POST'])
+@patient_required
+def patient_profile():
+    """View and update patient profile"""
+    patient_id = session.get('user_id')
+    patient = Patient.query.get(patient_id)
+    
+    if not patient:
+        flash('Patient not found.', 'danger')
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        patient.email = request.form.get('email')
+        patient.name = request.form.get('name')
+        patient.phone = request.form.get('phone')
+        patient.address = request.form.get('address')
+        patient.gender = request.form.get('gender')
+        
+        date_of_birth = request.form.get('date_of_birth')
+        if date_of_birth:
+            try:
+                patient.date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+            except ValueError:
+                flash('Invalid date format.', 'danger')
+                return render_template('patient/profile.html', patient=patient)
+        
+        # Update password if provided
+        new_password = request.form.get('password')
+        if new_password:
+            patient.password = generate_password_hash(new_password)
+        
+        try:
+            db.session.commit()
+            session['name'] = patient.name  # Update session name
+            flash('Profile updated successfully!', 'success')
+            return redirect(url_for('patient_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while updating your profile.', 'danger')
+    
+    return render_template('patient/profile.html', patient=patient)
+
+# Patient - Search Doctors
+@app.route('/patient/doctors')
+@patient_required
+def patient_search_doctors():
+    """Search and view doctors"""
+    search_query = request.args.get('search', '')
+    specialization_filter = request.args.get('specialization', '')
+    department_filter = request.args.get('department', '')
+    
+    doctors = Doctor.query.filter_by(is_active=True)
+    
+    if search_query:
+        doctors = doctors.filter(
+            or_(
+                Doctor.name.contains(search_query),
+                Doctor.specialization.contains(search_query),
+                Doctor.email.contains(search_query)
+            )
+        )
+    
+    if specialization_filter:
+        doctors = doctors.filter(Doctor.specialization.contains(specialization_filter))
+    
+    if department_filter:
+        doctors = doctors.filter(Doctor.department_id == int(department_filter))
+    
+    doctors = doctors.order_by(Doctor.name).all()
+    departments = Department.query.all()
+    
+    # Get unique specializations
+    specializations = db.session.query(Doctor.specialization).filter_by(is_active=True).distinct().all()
+    specializations = [spec[0] for spec in specializations]
+    
+    return render_template('patient/doctors.html',
+                         doctors=doctors,
+                         departments=departments,
+                         specializations=specializations,
+                         search_query=search_query,
+                         specialization_filter=specialization_filter,
+                         department_filter=department_filter)
+
+# Patient - View Doctor
+@app.route('/patient/doctors/<int:doctor_id>')
+@patient_required
+def patient_view_doctor(doctor_id):
+    """View doctor details"""
+    doctor = Doctor.query.filter_by(id=doctor_id, is_active=True).first_or_404()
+    return render_template('patient/view_doctor.html', doctor=doctor)
+
+# Patient - Book Appointment
+@app.route('/patient/appointments/book/<int:doctor_id>', methods=['GET', 'POST'])
+@patient_required
+def patient_book_appointment(doctor_id):
+    """Book an appointment with a doctor"""
+    patient_id = session.get('user_id')
+    doctor = Doctor.query.filter_by(id=doctor_id, is_active=True).first_or_404()
+    
+    if request.method == 'POST':
+        appointment_date = request.form.get('date')
+        appointment_time = request.form.get('time')
+        reason = request.form.get('reason')
+        
+        if not appointment_date or not appointment_time:
+            flash('Please select both date and time.', 'danger')
+            return render_template('patient/book_appointment.html', doctor=doctor)
+        
+        try:
+            apt_date = datetime.strptime(appointment_date, '%Y-%m-%d').date()
+            apt_time = datetime.strptime(appointment_time, '%H:%M').time()
+        except ValueError:
+            flash('Invalid date or time format.', 'danger')
+            return render_template('patient/book_appointment.html', doctor=doctor)
+        
+        # Check if date is in the past
+        if apt_date < date.today():
+            flash('Cannot book appointments in the past.', 'danger')
+            return render_template('patient/book_appointment.html', doctor=doctor)
+        
+        # Check if date is more than 7 days in the future
+        if apt_date > date.today() + timedelta(days=7):
+            flash('Can only book appointments up to 7 days in advance.', 'danger')
+            return render_template('patient/book_appointment.html', doctor=doctor)
+        
+        # Check for double booking (same doctor, same date, same time, status not Cancelled)
+        existing_appointment = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.date == apt_date,
+            Appointment.time == apt_time,
+            Appointment.status != 'Cancelled'
+        ).first()
+        
+        if existing_appointment:
+            flash('This time slot is already booked. Please choose another time.', 'danger')
+            return render_template('patient/book_appointment.html', doctor=doctor)
+        
+        # Create new appointment
+        try:
+            new_appointment = Appointment(
+                patient_id=patient_id,
+                doctor_id=doctor_id,
+                date=apt_date,
+                time=apt_time,
+                status='Booked',
+                reason=reason
+            )
+            db.session.add(new_appointment)
+            db.session.commit()
+            
+            flash('Appointment booked successfully!', 'success')
+            return redirect(url_for('patient_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while booking the appointment.', 'danger')
+    
+    return render_template('patient/book_appointment.html', doctor=doctor)
+
+# Patient - View Appointment
+@app.route('/patient/appointments/<int:appointment_id>')
+@patient_required
+def patient_view_appointment(appointment_id):
+    """View appointment details"""
+    patient_id = session.get('user_id')
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    # Verify appointment belongs to this patient
+    if appointment.patient_id != patient_id:
+        flash('You do not have permission to view this appointment.', 'danger')
+        return redirect(url_for('patient_dashboard'))
+    
+    return render_template('patient/view_appointment.html', appointment=appointment)
+
+# Patient - Cancel Appointment
+@app.route('/patient/appointments/<int:appointment_id>/cancel', methods=['POST'])
+@patient_required
+def patient_cancel_appointment(appointment_id):
+    """Cancel an appointment"""
+    patient_id = session.get('user_id')
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    # Verify appointment belongs to this patient
+    if appointment.patient_id != patient_id:
+        flash('You do not have permission to cancel this appointment.', 'danger')
+        return redirect(url_for('patient_dashboard'))
+    
+    # Check if appointment can be cancelled
+    if appointment.status != 'Booked':
+        flash('Only booked appointments can be cancelled.', 'danger')
+        return redirect(url_for('patient_view_appointment', appointment_id=appointment_id))
+    
+    try:
+        appointment.status = 'Cancelled'
+        appointment.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash('Appointment cancelled successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while cancelling the appointment.', 'danger')
+    
+    return redirect(url_for('patient_dashboard'))
+
+# Patient - Reschedule Appointment
+@app.route('/patient/appointments/<int:appointment_id>/reschedule', methods=['GET', 'POST'])
+@patient_required
+def patient_reschedule_appointment(appointment_id):
+    """Reschedule an appointment"""
+    patient_id = session.get('user_id')
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    # Verify appointment belongs to this patient
+    if appointment.patient_id != patient_id:
+        flash('You do not have permission to reschedule this appointment.', 'danger')
+        return redirect(url_for('patient_dashboard'))
+    
+    # Check if appointment can be rescheduled
+    if appointment.status != 'Booked':
+        flash('Only booked appointments can be rescheduled.', 'danger')
+        return redirect(url_for('patient_view_appointment', appointment_id=appointment_id))
+    
+    if request.method == 'POST':
+        new_date = request.form.get('date')
+        new_time = request.form.get('time')
+        
+        if not new_date or not new_time:
+            flash('Please select both date and time.', 'danger')
+            return render_template('patient/reschedule_appointment.html', appointment=appointment)
+        
+        try:
+            apt_date = datetime.strptime(new_date, '%Y-%m-%d').date()
+            apt_time = datetime.strptime(new_time, '%H:%M').time()
+        except ValueError:
+            flash('Invalid date or time format.', 'danger')
+            return render_template('patient/reschedule_appointment.html', appointment=appointment)
+        
+        # Check if date is in the past
+        if apt_date < date.today():
+            flash('Cannot reschedule to a past date.', 'danger')
+            return render_template('patient/reschedule_appointment.html', appointment=appointment)
+        
+        # Check if date is more than 7 days in the future
+        if apt_date > date.today() + timedelta(days=7):
+            flash('Can only reschedule appointments up to 7 days in advance.', 'danger')
+            return render_template('patient/reschedule_appointment.html', appointment=appointment)
+        
+        # Check for double booking (same doctor, same date, same time, status not Cancelled, excluding current appointment)
+        existing_appointment = Appointment.query.filter(
+            Appointment.doctor_id == appointment.doctor_id,
+            Appointment.date == apt_date,
+            Appointment.time == apt_time,
+            Appointment.status != 'Cancelled',
+            Appointment.id != appointment_id
+        ).first()
+        
+        if existing_appointment:
+            flash('This time slot is already booked. Please choose another time.', 'danger')
+            return render_template('patient/reschedule_appointment.html', appointment=appointment)
+        
+        # Update appointment
+        try:
+            appointment.date = apt_date
+            appointment.time = apt_time
+            appointment.updated_at = datetime.utcnow()
+            db.session.commit()
+            
+            flash('Appointment rescheduled successfully!', 'success')
+            return redirect(url_for('patient_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while rescheduling the appointment.', 'danger')
+    
+    return render_template('patient/reschedule_appointment.html', appointment=appointment)
 
 if __name__ == '__main__':
     app.run(debug=True)

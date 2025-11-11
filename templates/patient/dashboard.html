@@ -5,7 +5,54 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-person"></i> Patient Dashboard</h2>
-    <span class="badge bg-success fs-6">{{ patient.name }}</span>
+    <div>
+        <span class="badge bg-success fs-6 me-2">{{ patient.name }}</span>
+        <a href="{{ url_for('patient_profile') }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-person-circle"></i> My Profile
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Upcoming Appointments</h6>
+                        <h2 class="mb-0">{{ upcoming_count }}</h2>
+                    </div>
+                    <i class="bi bi-calendar-check fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Past Appointments</h6>
+                        <h2 class="mb-0">{{ past_count }}</h2>
+                    </div>
+                    <i class="bi bi-calendar-history fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2">Available Doctors</h6>
+                        <h2 class="mb-0">{{ doctors|length }}</h2>
+                    </div>
+                    <i class="bi bi-person-badge fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row">
@@ -16,9 +63,9 @@
             </div>
             <div class="card-body">
                 {% if upcoming_appointments %}
-                    <ul class="list-group list-group-flush">
+                    <div class="list-group">
                         {% for appointment in upcoming_appointments %}
-                        <li class="list-group-item">
+                        <a href="{{ url_for('patient_view_appointment', appointment_id=appointment.id) }}" class="list-group-item list-group-item-action">
                             <div>
                                 <strong>{{ appointment.date.strftime('%B %d, %Y') }}</strong>
                                 <br>
@@ -28,14 +75,16 @@
                                 <br>
                                 <span class="badge bg-primary">{{ appointment.status }}</span>
                             </div>
-                        </li>
+                        </a>
                         {% endfor %}
-                    </ul>
+                    </div>
                 {% else %}
                     <p class="text-muted mb-0">No upcoming appointments.</p>
                 {% endif %}
                 <div class="mt-3">
-                    <a href="#" class="btn btn-primary btn-sm w-100">Book Appointment</a>
+                    <a href="{{ url_for('patient_search_doctors') }}" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-plus-circle"></i> Book Appointment
+                    </a>
                 </div>
             </div>
         </div>
@@ -56,6 +105,7 @@
                                     <th>Doctor</th>
                                     <th>Status</th>
                                     <th>Treatment</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -67,10 +117,15 @@
                                     <td><span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'secondary' }}">{{ appointment.status }}</span></td>
                                     <td>
                                         {% if appointment.treatment %}
-                                            <a href="#" class="btn btn-sm btn-info">View Details</a>
+                                            <span class="badge bg-success">Available</span>
                                         {% else %}
-                                            <span class="text-muted">No treatment recorded</span>
+                                            <span class="text-muted">N/A</span>
                                         {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('patient_view_appointment', appointment_id=appointment.id) }}" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -100,6 +155,9 @@
                                 <div class="card-body">
                                     <h6 class="card-title">{{ department.name }}</h6>
                                     <p class="card-text text-muted small">{{ department.description or 'No description' }}</p>
+                                    <small class="text-muted">
+                                        <i class="bi bi-person-badge"></i> {{ department.doctors|length }} doctor(s)
+                                    </small>
                                 </div>
                             </div>
                         </div>
@@ -108,30 +166,13 @@
                 {% else %}
                     <p class="text-muted mb-0">No departments available.</p>
                 {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Patient Functions</h5>
-            </div>
-            <div class="card-body">
-                <p>Welcome to the Patient Dashboard. Here you can:</p>
-                <ul>
-                    <li>View and search doctors by specialization or name</li>
-                    <li>Book, reschedule, or cancel appointments</li>
-                    <li>View upcoming appointments with status</li>
-                    <li>View past appointments with diagnosis and prescriptions</li>
-                    <li>Update your profile</li>
-                </ul>
-                <p class="text-muted"><small>Note: Full functionality will be available in the Patient Dashboard milestone.</small></p>
+                <div class="mt-3 text-center">
+                    <a href="{{ url_for('patient_search_doctors') }}" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Search Doctors
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
-
