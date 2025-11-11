@@ -84,6 +84,7 @@
                                     <th>Time</th>
                                     <th>Doctor</th>
                                     <th>Status</th>
+                                    <th>Treatment</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -95,7 +96,7 @@
                                     <td><span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'primary' if appointment.status == 'Booked' else 'secondary' }}">{{ appointment.status }}</span></td>
                                     <td>
                                         {% if appointment.id in treatments %}
-                                            <a href="#" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#treatmentModal{{ appointment.id }}">View Treatment</a>
+                                            <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#treatmentModal{{ appointment.id }}">View Treatment</button>
                                         {% else %}
                                             <span class="text-muted">No treatment</span>
                                         {% endif %}
