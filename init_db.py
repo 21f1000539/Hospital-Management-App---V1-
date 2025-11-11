@@ -4,7 +4,7 @@ This script creates all database tables programmatically and creates the predefi
 """
 from app import app
 from database import db
-from models import Admin, Doctor, Patient, Department, Appointment, Treatment
+from models import Admin, Doctor, Patient, Department, Appointment, Treatment, DoctorAvailability
 from werkzeug.security import generate_password_hash
 
 def init_database():
