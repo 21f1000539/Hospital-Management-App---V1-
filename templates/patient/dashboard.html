@@ -117,14 +117,16 @@
                                     <td><span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'secondary' }}">{{ appointment.status }}</span></td>
                                     <td>
                                         {% if appointment.treatment %}
-                                            <span class="badge bg-success">Available</span>
+                                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#treatmentModal{{ appointment.id }}">
+                                                View Treatment
+                                            </button>
                                         {% else %}
-                                            <span class="text-muted">N/A</span>
+                                            <span class="text-muted">No treatment recorded</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         <a href="{{ url_for('patient_view_appointment', appointment_id=appointment.id) }}" class="btn btn-sm btn-info">
-                                            <i class="bi bi-eye"></i> View
+                                            <i class="bi bi-eye"></i> View Details
                                         </a>
                                     </td>
                                 </tr>
@@ -175,4 +177,55 @@
         </div>
     </div>
 </div>
+
+<!-- Treatment Modals for Past Appointments -->
+{% for appointment in past_appointments %}
+{% if appointment.treatment %}
+<div class="modal fade" id="treatmentModal{{ appointment.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Treatment Record - {{ appointment.date.strftime('%Y-%m-%d') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Doctor:</th>
+                        <td>Dr. {{ appointment.doctor.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date:</th>
+                        <td>{{ appointment.date.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Time:</th>
+                        <td>{{ appointment.time.strftime('%I:%M %p') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Diagnosis:</th>
+                        <td>{{ appointment.treatment.diagnosis }}</td>
+                    </tr>
+                    <tr>
+                        <th>Prescription:</th>
+                        <td>{{ appointment.treatment.prescription or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Notes:</th>
+                        <td>{{ appointment.treatment.notes or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Recorded On:</th>
+                        <td>{{ appointment.treatment.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
 {% endblock %}

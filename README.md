@@ -110,3 +110,18 @@ Hospital-Management-App---V1-/
 - Complete patient navigation in navbar
 - Appointment booking limited to next 7 days
 - Automatic conflict detection and prevention
+
+### Milestone 6: Appointment History and Conflict Prevention ✅
+- Enhanced double booking prevention with helper function and better validation
+- Improved conflict detection (checks for Booked and Completed appointments)
+- Display booked time slots when selecting date for booking/rescheduling
+- Complete appointment history storage and display for all roles
+- Treatment records accessible to Admin, Doctor, and Patient (role-based access)
+- Enhanced appointment filtering (status, date, doctor, patient for admin)
+- Admin can view all treatment records with modal dialogs
+- Doctors can view patient's previous appointment history in appointment details
+- Patients can view their complete treatment history with modal dialogs
+- Status management (Booked → Completed → Cancelled) with proper validation
+- Cancelled appointments free up time slots for new bookings
+- Enhanced appointment history views with treatment indicators
+- All appointment and treatment records are permanently stored

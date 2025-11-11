@@ -93,6 +93,13 @@
                                     <td>{{ appointment.time.strftime('%I:%M %p') }}</td>
                                     <td>Dr. {{ appointment.doctor.name }}</td>
                                     <td><span class="badge bg-{{ 'success' if appointment.status == 'Completed' else 'primary' if appointment.status == 'Booked' else 'secondary' }}">{{ appointment.status }}</span></td>
+                                    <td>
+                                        {% if appointment.id in treatments %}
+                                            <a href="#" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#treatmentModal{{ appointment.id }}">View Treatment</a>
+                                        {% else %}
+                                            <span class="text-muted">No treatment</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -105,5 +112,45 @@
         </div>
     </div>
 </div>
+
+<!-- Treatment Modals -->
+{% for appointment in appointments %}
+{% if appointment.id in treatments %}
+{% set treatment = treatments[appointment.id] %}
+<div class="modal fade" id="treatmentModal{{ appointment.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Treatment Record - {{ appointment.date.strftime('%Y-%m-%d') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Diagnosis:</th>
+                        <td>{{ treatment.diagnosis }}</td>
+                    </tr>
+                    <tr>
+                        <th>Prescription:</th>
+                        <td>{{ treatment.prescription or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Notes:</th>
+                        <td>{{ treatment.notes or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Recorded On:</th>
+                        <td>{{ treatment.created_at.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
 {% endblock %}
 

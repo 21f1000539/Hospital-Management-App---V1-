@@ -38,13 +38,26 @@
                 <form method="POST" action="{{ url_for('patient_book_appointment', doctor_id=doctor.id) }}">
                     <div class="mb-3">
                         <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="date" name="date" required>
+                        <input type="date" class="form-control" id="date" name="date" required value="{{ selected_date }}" onchange="window.location.href='{{ url_for('patient_book_appointment', doctor_id=doctor.id) }}?date=' + this.value">
                         <small class="text-muted">Appointments can be booked up to 7 days in advance</small>
                     </div>
+                    {% if booked_appointments %}
+                    <div class="mb-3">
+                        <label class="form-label">Booked Time Slots for Selected Date</label>
+                        <div class="alert alert-warning">
+                            <strong>Already Booked:</strong>
+                            <ul class="mb-0 mt-2">
+                                {% for apt in booked_appointments %}
+                                <li>{{ apt.time.strftime('%I:%M %p') }} - {{ apt.patient.name }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="mb-3">
                         <label for="time" class="form-label">Time <span class="text-danger">*</span></label>
-                        <input type="time" class="form-control" id="time" name="time" required>
-                        <small class="text-muted">Select your preferred time</small>
+                        <input type="time" class="form-control" id="time" name="time" required value="{{ selected_time or '' }}">
+                        <small class="text-muted">Select your preferred time (avoid booked slots above)</small>
                     </div>
                     <div class="mb-3">
                         <label for="reason" class="form-label">Reason for Visit</label>

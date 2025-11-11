@@ -365,7 +365,20 @@ def admin_view_patient(patient_id):
     appointments = Appointment.query.filter_by(patient_id=patient_id).order_by(
         Appointment.date.desc(), Appointment.time.desc()
     ).all()
-    return render_template('admin/view_patient.html', patient=patient, appointments=appointments)
+    
+    # Get treatments for these appointments
+    appointment_ids = [apt.id for apt in appointments]
+    treatments = {}
+    if appointment_ids:
+        treatment_list = Treatment.query.filter(
+            Treatment.appointment_id.in_(appointment_ids)
+        ).all()
+        treatments = {t.appointment_id: t for t in treatment_list}
+    
+    return render_template('admin/view_patient.html', 
+                         patient=patient, 
+                         appointments=appointments,
+                         treatments=treatments)
 
 @app.route('/admin/patients/<int:patient_id>/edit', methods=['GET', 'POST'])
 @admin_required
@@ -440,6 +453,8 @@ def admin_appointments():
     """View all appointments"""
     status_filter = request.args.get('status', '')
     date_filter = request.args.get('date', '')
+    doctor_filter = request.args.get('doctor', '')
+    patient_filter = request.args.get('patient', '')
     
     appointments = Appointment.query
     
@@ -453,12 +468,26 @@ def admin_appointments():
         except ValueError:
             pass
     
+    if doctor_filter:
+        appointments = appointments.filter(Appointment.doctor_id == int(doctor_filter))
+    
+    if patient_filter:
+        appointments = appointments.filter(Appointment.patient_id == int(patient_filter))
+    
     appointments = appointments.order_by(Appointment.date.desc(), Appointment.time.desc()).all()
+    
+    # Get all doctors and patients for filter dropdowns
+    doctors = Doctor.query.filter_by(is_active=True).order_by(Doctor.name).all()
+    patients = Patient.query.filter_by(is_active=True).order_by(Patient.name).all()
     
     return render_template('admin/appointments.html', 
                          appointments=appointments,
                          status_filter=status_filter,
-                         date_filter=date_filter)
+                         date_filter=date_filter,
+                         doctor_filter=doctor_filter,
+                         patient_filter=patient_filter,
+                         doctors=doctors,
+                         patients=patients)
 
 # Admin - Search
 @app.route('/admin/search')
@@ -630,7 +659,17 @@ def doctor_view_appointment(appointment_id):
         flash('You do not have permission to view this appointment.', 'danger')
         return redirect(url_for('doctor_dashboard'))
     
-    return render_template('doctor/view_appointment.html', appointment=appointment)
+    # Get patient's previous appointments with this doctor for context
+    previous_appointments = Appointment.query.filter(
+        Appointment.patient_id == appointment.patient_id,
+        Appointment.doctor_id == doctor_id,
+        Appointment.id != appointment_id,
+        Appointment.status == 'Completed'
+    ).order_by(Appointment.date.desc()).limit(5).all()
+    
+    return render_template('doctor/view_appointment.html', 
+                         appointment=appointment,
+                         previous_appointments=previous_appointments)
 
 # Doctor - Update Appointment Status
 @app.route('/doctor/appointments/<int:appointment_id>/update-status', methods=['POST'])
@@ -916,6 +955,22 @@ def patient_view_doctor(doctor_id):
     doctor = Doctor.query.filter_by(id=doctor_id, is_active=True).first_or_404()
     return render_template('patient/view_doctor.html', doctor=doctor)
 
+# Helper function to check appointment availability
+def check_appointment_availability(doctor_id, apt_date, apt_time, exclude_appointment_id=None):
+    """Check if a time slot is available for booking"""
+    query = Appointment.query.filter(
+        Appointment.doctor_id == doctor_id,
+        Appointment.date == apt_date,
+        Appointment.time == apt_time,
+        Appointment.status.in_(['Booked', 'Completed'])  # Only Booked and Completed block the slot
+    )
+    
+    if exclude_appointment_id:
+        query = query.filter(Appointment.id != exclude_appointment_id)
+    
+    existing_appointment = query.first()
+    return existing_appointment is None
+
 # Patient - Book Appointment
 @app.route('/patient/appointments/book/<int:doctor_id>', methods=['GET', 'POST'])
 @patient_required
@@ -931,6 +986,22 @@ def patient_book_appointment(doctor_id):
         
         if not appointment_date or not appointment_time:
             flash('Please select both date and time.', 'danger')
+            # Get booked appointments for the selected date to show conflicts
+            selected_date = request.form.get('date')
+            if selected_date:
+                try:
+                    check_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+                    booked_appointments = Appointment.query.filter(
+                        Appointment.doctor_id == doctor_id,
+                        Appointment.date == check_date,
+                        Appointment.status.in_(['Booked', 'Completed'])
+                    ).order_by(Appointment.time).all()
+                    return render_template('patient/book_appointment.html', 
+                                         doctor=doctor, 
+                                         selected_date=selected_date,
+                                         booked_appointments=booked_appointments)
+                except ValueError:
+                    pass
             return render_template('patient/book_appointment.html', doctor=doctor)
         
         try:
@@ -950,17 +1021,33 @@ def patient_book_appointment(doctor_id):
             flash('Can only book appointments up to 7 days in advance.', 'danger')
             return render_template('patient/book_appointment.html', doctor=doctor)
         
-        # Check for double booking (same doctor, same date, same time, status not Cancelled)
-        existing_appointment = Appointment.query.filter(
-            Appointment.doctor_id == doctor_id,
-            Appointment.date == apt_date,
-            Appointment.time == apt_time,
-            Appointment.status != 'Cancelled'
-        ).first()
-        
-        if existing_appointment:
-            flash('This time slot is already booked. Please choose another time.', 'danger')
-            return render_template('patient/book_appointment.html', doctor=doctor)
+        # Check for double booking (same doctor, same date, same time, status Booked or Completed)
+        if not check_appointment_availability(doctor_id, apt_date, apt_time):
+            # Get the conflicting appointment details
+            conflicting = Appointment.query.filter(
+                Appointment.doctor_id == doctor_id,
+                Appointment.date == apt_date,
+                Appointment.time == apt_time,
+                Appointment.status.in_(['Booked', 'Completed'])
+            ).first()
+            
+            if conflicting:
+                flash(f'This time slot is already booked by another patient. Please choose another time.', 'danger')
+            else:
+                flash('This time slot is not available. Please choose another time.', 'danger')
+            
+            # Show booked appointments for the selected date
+            booked_appointments = Appointment.query.filter(
+                Appointment.doctor_id == doctor_id,
+                Appointment.date == apt_date,
+                Appointment.status.in_(['Booked', 'Completed'])
+            ).order_by(Appointment.time).all()
+            
+            return render_template('patient/book_appointment.html', 
+                                 doctor=doctor,
+                                 selected_date=appointment_date,
+                                 selected_time=appointment_time,
+                                 booked_appointments=booked_appointments)
         
         # Create new appointment
         try:
@@ -975,13 +1062,30 @@ def patient_book_appointment(doctor_id):
             db.session.add(new_appointment)
             db.session.commit()
             
-            flash('Appointment booked successfully!', 'success')
+            flash(f'Appointment booked successfully for {apt_date.strftime("%B %d, %Y")} at {apt_time.strftime("%I:%M %p")}!', 'success')
             return redirect(url_for('patient_dashboard'))
         except Exception as e:
             db.session.rollback()
-            flash('An error occurred while booking the appointment.', 'danger')
+            flash('An error occurred while booking the appointment. Please try again.', 'danger')
     
-    return render_template('patient/book_appointment.html', doctor=doctor)
+    # For GET request, check if a date is selected to show booked slots
+    selected_date = request.args.get('date', '')
+    booked_appointments = []
+    if selected_date:
+        try:
+            check_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+            booked_appointments = Appointment.query.filter(
+                Appointment.doctor_id == doctor_id,
+                Appointment.date == check_date,
+                Appointment.status.in_(['Booked', 'Completed'])
+            ).order_by(Appointment.time).all()
+        except ValueError:
+            pass
+    
+    return render_template('patient/book_appointment.html', 
+                         doctor=doctor,
+                         selected_date=selected_date,
+                         booked_appointments=booked_appointments)
 
 # Patient - View Appointment
 @app.route('/patient/appointments/<int:appointment_id>')
@@ -1070,18 +1174,34 @@ def patient_reschedule_appointment(appointment_id):
             flash('Can only reschedule appointments up to 7 days in advance.', 'danger')
             return render_template('patient/reschedule_appointment.html', appointment=appointment)
         
-        # Check for double booking (same doctor, same date, same time, status not Cancelled, excluding current appointment)
-        existing_appointment = Appointment.query.filter(
-            Appointment.doctor_id == appointment.doctor_id,
-            Appointment.date == apt_date,
-            Appointment.time == apt_time,
-            Appointment.status != 'Cancelled',
-            Appointment.id != appointment_id
-        ).first()
-        
-        if existing_appointment:
-            flash('This time slot is already booked. Please choose another time.', 'danger')
-            return render_template('patient/reschedule_appointment.html', appointment=appointment)
+        # Check for double booking (same doctor, same date, same time, status Booked or Completed, excluding current appointment)
+        if not check_appointment_availability(appointment.doctor_id, apt_date, apt_time, exclude_appointment_id=appointment_id):
+            conflicting = Appointment.query.filter(
+                Appointment.doctor_id == appointment.doctor_id,
+                Appointment.date == apt_date,
+                Appointment.time == apt_time,
+                Appointment.status.in_(['Booked', 'Completed']),
+                Appointment.id != appointment_id
+            ).first()
+            
+            if conflicting:
+                flash(f'This time slot is already booked by another patient. Please choose another time.', 'danger')
+            else:
+                flash('This time slot is not available. Please choose another time.', 'danger')
+            
+            # Show booked appointments for the selected date
+            booked_appointments = Appointment.query.filter(
+                Appointment.doctor_id == appointment.doctor_id,
+                Appointment.date == apt_date,
+                Appointment.status.in_(['Booked', 'Completed']),
+                Appointment.id != appointment_id
+            ).order_by(Appointment.time).all()
+            
+            return render_template('patient/reschedule_appointment.html', 
+                                 appointment=appointment,
+                                 selected_date=new_date,
+                                 selected_time=new_time,
+                                 booked_appointments=booked_appointments)
         
         # Update appointment
         try:
@@ -1096,7 +1216,25 @@ def patient_reschedule_appointment(appointment_id):
             db.session.rollback()
             flash('An error occurred while rescheduling the appointment.', 'danger')
     
-    return render_template('patient/reschedule_appointment.html', appointment=appointment)
+    # For GET request, check if a date is selected to show booked slots
+    selected_date = request.args.get('date', '')
+    booked_appointments = []
+    if selected_date:
+        try:
+            check_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+            booked_appointments = Appointment.query.filter(
+                Appointment.doctor_id == appointment.doctor_id,
+                Appointment.date == check_date,
+                Appointment.status.in_(['Booked', 'Completed']),
+                Appointment.id != appointment_id
+            ).order_by(Appointment.time).all()
+        except ValueError:
+            pass
+    
+    return render_template('patient/reschedule_appointment.html', 
+                         appointment=appointment,
+                         selected_date=selected_date,
+                         booked_appointments=booked_appointments)
 
 if __name__ == '__main__':
     app.run(debug=True)

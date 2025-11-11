@@ -33,13 +33,26 @@
                 <form method="POST" action="{{ url_for('patient_reschedule_appointment', appointment_id=appointment.id) }}">
                     <div class="mb-3">
                         <label for="date" class="form-label">New Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="date" name="date" required>
+                        <input type="date" class="form-control" id="date" name="date" required value="{{ selected_date or appointment.date.strftime('%Y-%m-%d') }}" onchange="window.location.href='{{ url_for('patient_reschedule_appointment', appointment_id=appointment.id) }}?date=' + this.value">
                         <small class="text-muted">Appointments can be rescheduled up to 7 days in advance</small>
                     </div>
+                    {% if booked_appointments %}
+                    <div class="mb-3">
+                        <label class="form-label">Booked Time Slots for Selected Date</label>
+                        <div class="alert alert-warning">
+                            <strong>Already Booked:</strong>
+                            <ul class="mb-0 mt-2">
+                                {% for apt in booked_appointments %}
+                                <li>{{ apt.time.strftime('%I:%M %p') }} - {{ apt.patient.name }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="mb-3">
                         <label for="time" class="form-label">New Time <span class="text-danger">*</span></label>
-                        <input type="time" class="form-control" id="time" name="time" required>
-                        <small class="text-muted">Select your preferred new time</small>
+                        <input type="time" class="form-control" id="time" name="time" required value="{{ selected_time or appointment.time.strftime('%H:%M') }}">
+                        <small class="text-muted">Select your preferred new time (avoid booked slots above)</small>
                     </div>
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i> <strong>Note:</strong> Please ensure the selected time slot is available. If the time is already booked, you'll be notified and can choose another time.
