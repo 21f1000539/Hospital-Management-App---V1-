@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 from database import db
 from models import Admin, Doctor, Patient, Department, Appointment, Treatment
@@ -1235,6 +1235,437 @@ def patient_reschedule_appointment(appointment_id):
                          appointment=appointment,
                          selected_date=selected_date,
                          booked_appointments=booked_appointments)
+
+# ==================== API ENDPOINTS ====================
+
+# API Helper function to check API authentication
+def api_auth_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'error': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+# API - Doctors Endpoints
+@app.route('/api/doctors', methods=['GET', 'POST'])
+@api_auth_required
+def api_doctors():
+    """GET: List all doctors, POST: Create a new doctor"""
+    if request.method == 'GET':
+        doctors = Doctor.query.all()
+        return jsonify({
+            'doctors': [{
+                'id': doctor.id,
+                'username': doctor.username,
+                'email': doctor.email,
+                'name': doctor.name,
+                'phone': doctor.phone,
+                'specialization': doctor.specialization,
+                'department_id': doctor.department_id,
+                'availability': doctor.availability,
+                'is_active': doctor.is_active,
+                'created_at': doctor.created_at.isoformat() if doctor.created_at else None
+            } for doctor in doctors]
+        }), 200
+    
+    elif request.method == 'POST':
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Validate required fields
+        required_fields = ['username', 'password', 'email', 'name', 'specialization']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Check if username already exists
+        if Doctor.query.filter_by(username=data['username']).first():
+            return jsonify({'error': 'Username already exists'}), 400
+        
+        # Check if email already exists
+        if Doctor.query.filter_by(email=data['email']).first():
+            return jsonify({'error': 'Email already exists'}), 400
+        
+        try:
+            new_doctor = Doctor(
+                username=data['username'],
+                password=generate_password_hash(data['password']),
+                email=data['email'],
+                name=data['name'],
+                phone=data.get('phone'),
+                specialization=data['specialization'],
+                department_id=data.get('department_id'),
+                availability=data.get('availability'),
+                is_active=data.get('is_active', True)
+            )
+            db.session.add(new_doctor)
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Doctor created successfully',
+                'doctor': {
+                    'id': new_doctor.id,
+                    'username': new_doctor.username,
+                    'email': new_doctor.email,
+                    'name': new_doctor.name
+                }
+            }), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/api/doctors/<int:doctor_id>', methods=['GET', 'PUT', 'DELETE'])
+@api_auth_required
+def api_doctor(doctor_id):
+    """GET: Get a specific doctor, PUT: Update a doctor, DELETE: Delete a doctor"""
+    doctor = Doctor.query.get_or_404(doctor_id)
+    
+    if request.method == 'GET':
+        return jsonify({
+            'id': doctor.id,
+            'username': doctor.username,
+            'email': doctor.email,
+            'name': doctor.name,
+            'phone': doctor.phone,
+            'specialization': doctor.specialization,
+            'department_id': doctor.department_id,
+            'availability': doctor.availability,
+            'is_active': doctor.is_active,
+            'created_at': doctor.created_at.isoformat() if doctor.created_at else None
+        }), 200
+    
+    elif request.method == 'PUT':
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        try:
+            if 'name' in data:
+                doctor.name = data['name']
+            if 'email' in data:
+                if Doctor.query.filter(Doctor.email == data['email'], Doctor.id != doctor_id).first():
+                    return jsonify({'error': 'Email already exists'}), 400
+                doctor.email = data['email']
+            if 'phone' in data:
+                doctor.phone = data['phone']
+            if 'specialization' in data:
+                doctor.specialization = data['specialization']
+            if 'department_id' in data:
+                doctor.department_id = data['department_id']
+            if 'availability' in data:
+                doctor.availability = data['availability']
+            if 'is_active' in data:
+                doctor.is_active = data['is_active']
+            if 'password' in data:
+                doctor.password = generate_password_hash(data['password'])
+            
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Doctor updated successfully',
+                'doctor': {
+                    'id': doctor.id,
+                    'username': doctor.username,
+                    'email': doctor.email,
+                    'name': doctor.name
+                }
+            }), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'DELETE':
+        try:
+            db.session.delete(doctor)
+            db.session.commit()
+            return jsonify({'message': 'Doctor deleted successfully'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+# API - Patients Endpoints
+@app.route('/api/patients', methods=['GET', 'POST'])
+@api_auth_required
+def api_patients():
+    """GET: List all patients, POST: Create a new patient"""
+    if request.method == 'GET':
+        patients = Patient.query.all()
+        return jsonify({
+            'patients': [{
+                'id': patient.id,
+                'username': patient.username,
+                'email': patient.email,
+                'name': patient.name,
+                'phone': patient.phone,
+                'address': patient.address,
+                'date_of_birth': patient.date_of_birth.isoformat() if patient.date_of_birth else None,
+                'gender': patient.gender,
+                'is_active': patient.is_active,
+                'created_at': patient.created_at.isoformat() if patient.created_at else None
+            } for patient in patients]
+        }), 200
+    
+    elif request.method == 'POST':
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Validate required fields
+        required_fields = ['username', 'password', 'email', 'name']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Check if username already exists
+        if Patient.query.filter_by(username=data['username']).first():
+            return jsonify({'error': 'Username already exists'}), 400
+        
+        # Check if email already exists
+        if Patient.query.filter_by(email=data['email']).first():
+            return jsonify({'error': 'Email already exists'}), 400
+        
+        try:
+            dob = None
+            if 'date_of_birth' in data and data['date_of_birth']:
+                dob = datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date()
+            
+            new_patient = Patient(
+                username=data['username'],
+                password=generate_password_hash(data['password']),
+                email=data['email'],
+                name=data['name'],
+                phone=data.get('phone'),
+                address=data.get('address'),
+                date_of_birth=dob,
+                gender=data.get('gender'),
+                is_active=data.get('is_active', True)
+            )
+            db.session.add(new_patient)
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Patient created successfully',
+                'patient': {
+                    'id': new_patient.id,
+                    'username': new_patient.username,
+                    'email': new_patient.email,
+                    'name': new_patient.name
+                }
+            }), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/api/patients/<int:patient_id>', methods=['GET', 'PUT', 'DELETE'])
+@api_auth_required
+def api_patient(patient_id):
+    """GET: Get a specific patient, PUT: Update a patient, DELETE: Delete a patient"""
+    patient = Patient.query.get_or_404(patient_id)
+    
+    if request.method == 'GET':
+        return jsonify({
+            'id': patient.id,
+            'username': patient.username,
+            'email': patient.email,
+            'name': patient.name,
+            'phone': patient.phone,
+            'address': patient.address,
+            'date_of_birth': patient.date_of_birth.isoformat() if patient.date_of_birth else None,
+            'gender': patient.gender,
+            'is_active': patient.is_active,
+            'created_at': patient.created_at.isoformat() if patient.created_at else None
+        }), 200
+    
+    elif request.method == 'PUT':
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        try:
+            if 'name' in data:
+                patient.name = data['name']
+            if 'email' in data:
+                if Patient.query.filter(Patient.email == data['email'], Patient.id != patient_id).first():
+                    return jsonify({'error': 'Email already exists'}), 400
+                patient.email = data['email']
+            if 'phone' in data:
+                patient.phone = data['phone']
+            if 'address' in data:
+                patient.address = data['address']
+            if 'date_of_birth' in data and data['date_of_birth']:
+                patient.date_of_birth = datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date()
+            if 'gender' in data:
+                patient.gender = data['gender']
+            if 'is_active' in data:
+                patient.is_active = data['is_active']
+            if 'password' in data:
+                patient.password = generate_password_hash(data['password'])
+            
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Patient updated successfully',
+                'patient': {
+                    'id': patient.id,
+                    'username': patient.username,
+                    'email': patient.email,
+                    'name': patient.name
+                }
+            }), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'DELETE':
+        try:
+            db.session.delete(patient)
+            db.session.commit()
+            return jsonify({'message': 'Patient deleted successfully'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+# API - Appointments Endpoints
+@app.route('/api/appointments', methods=['GET', 'POST'])
+@api_auth_required
+def api_appointments():
+    """GET: List all appointments, POST: Create a new appointment"""
+    if request.method == 'GET':
+        appointments = Appointment.query.all()
+        return jsonify({
+            'appointments': [{
+                'id': appointment.id,
+                'patient_id': appointment.patient_id,
+                'doctor_id': appointment.doctor_id,
+                'date': appointment.date.isoformat() if appointment.date else None,
+                'time': appointment.time.strftime('%H:%M:%S') if appointment.time else None,
+                'status': appointment.status,
+                'reason': appointment.reason,
+                'created_at': appointment.created_at.isoformat() if appointment.created_at else None,
+                'updated_at': appointment.updated_at.isoformat() if appointment.updated_at else None
+            } for appointment in appointments]
+        }), 200
+    
+    elif request.method == 'POST':
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Validate required fields
+        required_fields = ['patient_id', 'doctor_id', 'date', 'time']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        try:
+            apt_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+            apt_time = datetime.strptime(data['time'], '%H:%M').time()
+            
+            # Check if appointment already exists
+            existing = Appointment.query.filter(
+                Appointment.doctor_id == data['doctor_id'],
+                Appointment.date == apt_date,
+                Appointment.time == apt_time,
+                Appointment.status.in_(['Booked', 'Completed'])
+            ).first()
+            
+            if existing:
+                return jsonify({'error': 'Appointment slot already booked'}), 400
+            
+            new_appointment = Appointment(
+                patient_id=data['patient_id'],
+                doctor_id=data['doctor_id'],
+                date=apt_date,
+                time=apt_time,
+                status=data.get('status', 'Booked'),
+                reason=data.get('reason')
+            )
+            db.session.add(new_appointment)
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Appointment created successfully',
+                'appointment': {
+                    'id': new_appointment.id,
+                    'patient_id': new_appointment.patient_id,
+                    'doctor_id': new_appointment.doctor_id,
+                    'date': new_appointment.date.isoformat(),
+                    'time': new_appointment.time.strftime('%H:%M:%S')
+                }
+            }), 201
+        except ValueError as e:
+            return jsonify({'error': f'Invalid date or time format: {str(e)}'}), 400
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/api/appointments/<int:appointment_id>', methods=['GET', 'PUT', 'DELETE'])
+@api_auth_required
+def api_appointment(appointment_id):
+    """GET: Get a specific appointment, PUT: Update an appointment, DELETE: Delete an appointment"""
+    appointment = Appointment.query.get_or_404(appointment_id)
+    
+    if request.method == 'GET':
+        return jsonify({
+            'id': appointment.id,
+            'patient_id': appointment.patient_id,
+            'doctor_id': appointment.doctor_id,
+            'date': appointment.date.isoformat() if appointment.date else None,
+            'time': appointment.time.strftime('%H:%M:%S') if appointment.time else None,
+            'status': appointment.status,
+            'reason': appointment.reason,
+            'created_at': appointment.created_at.isoformat() if appointment.created_at else None,
+            'updated_at': appointment.updated_at.isoformat() if appointment.updated_at else None,
+            'treatment': {
+                'diagnosis': appointment.treatment.diagnosis,
+                'prescription': appointment.treatment.prescription,
+                'notes': appointment.treatment.notes
+            } if appointment.treatment else None
+        }), 200
+    
+    elif request.method == 'PUT':
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        try:
+            if 'date' in data:
+                appointment.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+            if 'time' in data:
+                appointment.time = datetime.strptime(data['time'], '%H:%M').time()
+            if 'status' in data:
+                appointment.status = data['status']
+            if 'reason' in data:
+                appointment.reason = data['reason']
+            
+            appointment.updated_at = datetime.now()
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Appointment updated successfully',
+                'appointment': {
+                    'id': appointment.id,
+                    'patient_id': appointment.patient_id,
+                    'doctor_id': appointment.doctor_id,
+                    'status': appointment.status
+                }
+            }), 200
+        except ValueError as e:
+            return jsonify({'error': f'Invalid date or time format: {str(e)}'}), 400
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'DELETE':
+        try:
+            db.session.delete(appointment)
+            db.session.commit()
+            return jsonify({'message': 'Appointment deleted successfully'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
