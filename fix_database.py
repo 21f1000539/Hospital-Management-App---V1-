@@ -1,22 +1,21 @@
 """
-Database initialization script
-This script creates all database tables programmatically and creates the predefined admin user.
+Script to fix database schema by dropping and recreating all tables
 """
 from app import app
 from database import db
 from models import Admin, Doctor, Patient, Department, Appointment, Treatment, DoctorAvailability
 from werkzeug.security import generate_password_hash
 
-def init_database():
-    """Initialize database with tables and predefined admin user"""
+def fix_database():
+    """Drop all tables and recreate with new schema"""
     with app.app_context():
-        # Drop all existing tables and recreate (ensures schema is up to date)
+        print("Dropping all existing tables...")
         db.drop_all()
-        # Create all tables
+        print("Creating all tables with new schema...")
         db.create_all()
         print("[SUCCESS] Database tables created successfully!")
         
-        # Create predefined Admin user if it doesn't exist
+        # Create predefined Admin user
         admin = Admin.query.filter_by(username='admin').first()
         if not admin:
             admin = Admin(
@@ -33,8 +32,19 @@ def init_database():
         else:
             print("[INFO] Admin user already exists!")
         
-        print("\nDatabase initialization completed!")
+        # Verify schema
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        doctor_columns = [col['name'] for col in inspector.get_columns('doctor')]
+        print("\nDoctor table columns:", doctor_columns)
+        
+        if 'qualifications' in doctor_columns and 'experience' in doctor_columns:
+            print("[SUCCESS] Database schema is correct!")
+        else:
+            print("[ERROR] Database schema is missing new columns!")
+        
+        print("\nDatabase fix completed!")
 
 if __name__ == '__main__':
-    init_database()
+    fix_database()
 
