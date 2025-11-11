@@ -178,6 +178,21 @@
     </div>
 </div>
 
+{% if treatment_dates %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Treatment History</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="treatmentChart" height="50"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Treatment Modals for Past Appointments -->
 {% for appointment in past_appointments %}
 {% if appointment.treatment %}
@@ -228,4 +243,88 @@
 </div>
 {% endif %}
 {% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+{% if treatment_dates %}
+<script>
+    // Treatment History Chart
+    const treatmentCtx = document.getElementById('treatmentChart').getContext('2d');
+    new Chart(treatmentCtx, {
+        type: 'line',
+        data: {
+            labels: {{ treatment_dates|tojson }},
+            datasets: [{
+                label: 'Treatments',
+                data: {{ treatment_count|tojson }},
+                borderColor: 'rgb(16, 185, 129)',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if treatment_dates %}
+<script>
+    // Treatment History Chart
+    const treatmentCtx = document.getElementById('treatmentChart').getContext('2d');
+    new Chart(treatmentCtx, {
+        type: 'line',
+        data: {
+            labels: {{ treatment_dates|tojson }},
+            datasets: [{
+                label: 'Treatments',
+                data: {{ treatment_count|tojson }},
+                borderColor: 'rgb(16, 185, 129)',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
 {% endblock %}

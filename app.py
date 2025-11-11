@@ -4,7 +4,7 @@ from database import db
 from models import Admin, Doctor, Patient, Department, Appointment, Treatment
 from functools import wraps
 from datetime import datetime, date, timedelta
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func, extract
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
@@ -197,6 +197,22 @@ def admin_dashboard():
         Appointment.date.desc(), Appointment.time.desc()
     ).limit(5).all()
     
+    # Get appointment statistics for charts (last 7 days)
+    today = date.today()
+    last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    appointments_by_date = []
+    for day in last_7_days:
+        count = Appointment.query.filter(func.date(Appointment.date) == day).count()
+        appointments_by_date.append(count)
+    
+    # Get appointment status distribution
+    booked_count = Appointment.query.filter_by(status='Booked').count()
+    completed_count = Appointment.query.filter_by(status='Completed').count()
+    cancelled_count = Appointment.query.filter_by(status='Cancelled').count()
+    
+    # Get appointments by status for chart
+    status_data = [booked_count, completed_count, cancelled_count]
+    
     return render_template('admin/dashboard.html',
                          total_doctors=total_doctors,
                          active_doctors=active_doctors,
@@ -204,7 +220,13 @@ def admin_dashboard():
                          active_patients=active_patients,
                          total_appointments=total_appointments,
                          upcoming_appointments=upcoming_appointments,
-                         recent_appointments=recent_appointments)
+                         recent_appointments=recent_appointments,
+                         appointments_by_date=appointments_by_date,
+                         last_7_days=[d.strftime('%Y-%m-%d') for d in last_7_days],
+                         status_data=status_data,
+                         booked_count=booked_count,
+                         completed_count=completed_count,
+                         cancelled_count=cancelled_count)
 
 # Admin - Doctor Management
 @app.route('/admin/doctors')
@@ -609,6 +631,31 @@ def doctor_dashboard():
     completed_today = len([apt for apt in today_appointments if apt.status == 'Completed'])
     upcoming_count = len(upcoming_appointments)
     
+    # Get appointment distribution for charts (last 7 days)
+    today_date = date.today()
+    last_7_days_doc = [today_date - timedelta(days=i) for i in range(6, -1, -1)]
+    appointments_by_date_doc = []
+    for day in last_7_days_doc:
+        count = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            func.date(Appointment.date) == day
+        ).count()
+        appointments_by_date_doc.append(count)
+    
+    # Get status distribution
+    booked_count_doc = Appointment.query.filter(
+        Appointment.doctor_id == doctor_id,
+        Appointment.status == 'Booked'
+    ).count()
+    completed_count_doc = Appointment.query.filter(
+        Appointment.doctor_id == doctor_id,
+        Appointment.status == 'Completed'
+    ).count()
+    cancelled_count_doc = Appointment.query.filter(
+        Appointment.doctor_id == doctor_id,
+        Appointment.status == 'Cancelled'
+    ).count()
+    
     return render_template('doctor/dashboard.html',
                          doctor=doctor,
                          today_appointments=today_appointments,
@@ -616,7 +663,12 @@ def doctor_dashboard():
                          assigned_patients=assigned_patients,
                          total_appointments_today=total_appointments_today,
                          completed_today=completed_today,
-                         upcoming_count=upcoming_count)
+                         upcoming_count=upcoming_count,
+                         appointments_by_date=appointments_by_date_doc,
+                         last_7_days=[d.strftime('%Y-%m-%d') for d in last_7_days_doc],
+                         booked_count=booked_count_doc,
+                         completed_count=completed_count_doc,
+                         cancelled_count=cancelled_count_doc)
 
 # Doctor - View All Appointments
 @app.route('/doctor/appointments')
@@ -854,6 +906,21 @@ def patient_dashboard():
     upcoming_count = len(upcoming_appointments)
     past_count = len(past_appointments)
     
+    # Get treatment history data for charts
+    completed_appointments = Appointment.query.filter(
+        Appointment.patient_id == patient_id,
+        Appointment.status == 'Completed'
+    ).order_by(Appointment.date.desc()).limit(10).all()
+    
+    # Get treatment dates for chart
+    treatment_dates = []
+    treatment_count = []
+    if completed_appointments:
+        for apt in completed_appointments:
+            if apt.treatment:
+                treatment_dates.append(apt.date.strftime('%Y-%m-%d'))
+                treatment_count.append(1)
+    
     return render_template('patient/dashboard.html',
                          patient=patient,
                          departments=departments,
@@ -861,7 +928,9 @@ def patient_dashboard():
                          upcoming_appointments=upcoming_appointments,
                          past_appointments=past_appointments,
                          upcoming_count=upcoming_count,
-                         past_count=past_count)
+                         past_count=past_count,
+                         treatment_dates=treatment_dates,
+                         treatment_count=treatment_count)
 
 # Patient - Profile Management
 @app.route('/patient/profile', methods=['GET', 'POST'])
