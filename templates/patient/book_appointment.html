@@ -36,31 +36,132 @@
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('patient_book_appointment', doctor_id=doctor.id) }}" class="needs-validation" novalidate id="bookAppointmentForm">
+                    <input type="hidden" id="date" name="date" value="{{ selected_date or '' }}" required>
+                    <input type="hidden" id="time" name="time" value="{{ selected_time or '' }}" required>
+                    
+                    {% if availability_dict and dates %}
                     <div class="mb-3">
-                        <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="date" name="date" required value="{{ selected_date }}" onchange="window.location.href='{{ url_for('patient_book_appointment', doctor_id=doctor.id) }}?date=' + this.value">
-                        <div class="invalid-feedback">Please select a valid date.</div>
-                        <small class="text-muted">Appointments can be booked up to 7 days in advance</small>
-                    </div>
-                    {% if booked_appointments %}
-                    <div class="mb-3">
-                        <label class="form-label">Booked Time Slots for Selected Date</label>
-                        <div class="alert alert-warning">
-                            <strong>Already Booked:</strong>
-                            <ul class="mb-0 mt-2">
-                                {% for apt in booked_appointments %}
-                                <li>{{ apt.time.strftime('%I:%M %p') }} - {{ apt.patient.name }}</li>
-                                {% endfor %}
-                            </ul>
+                        <label class="form-label">Select Available Time Slot <span class="text-danger">*</span></label>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Click on an available time slot (green button) to book. Red indicates unavailable.
                         </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Morning Slot</th>
+                                        <th>Evening Slot</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for current_date in dates %}
+                                    {% set slot = availability_dict.get(current_date) %}
+                                    {% set date_str = current_date.strftime('%Y-%m-%d') %}
+                                    {% if slot and slot.is_available %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ current_date.strftime('%d/%m/%Y') }}</strong><br>
+                                            <small class="text-muted">{{ current_date.strftime('%A') }}</small>
+                                        </td>
+                                        <td>
+                                            {% if slot.morning_start and slot.morning_end %}
+                                                {% set morning_start_str = slot.morning_start.strftime('%H:%M') %}
+                                                {% set morning_end_str = slot.morning_end.strftime('%H:%M') %}
+                                                {% set is_morning_booked = false %}
+                                                {% if booked_appointments %}
+                                                    {% for apt in booked_appointments %}
+                                                        {% if apt.date == current_date and apt.time >= slot.morning_start and apt.time <= slot.morning_end %}
+                                                            {% set is_morning_booked = true %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endif %}
+                                                {% if is_morning_booked or (selected_date == date_str and selected_time and selected_time >= morning_start_str and selected_time <= morning_end_str) %}
+                                                    <button type="button" class="btn btn-sm btn-success w-100" disabled>
+                                                        {{ slot.morning_start.strftime('%I:%M %p') }} - {{ slot.morning_end.strftime('%I:%M %p') }}
+                                                        {% if is_morning_booked %}
+                                                            <br><small>Booked</small>
+                                                        {% elif selected_date == date_str and selected_time %}
+                                                            <br><small>Selected</small>
+                                                        {% endif %}
+                                                    </button>
+                                                {% else %}
+                                                    <button type="button" class="btn btn-sm btn-success w-100 slot-button" 
+                                                            data-date="{{ date_str }}" 
+                                                            data-time="{{ morning_start_str }}"
+                                                            onclick="selectSlot(this, '{{ date_str }}', '{{ morning_start_str }}', '{{ slot.morning_start.strftime('%I:%M %p') }} - {{ slot.morning_end.strftime('%I:%M %p') }}')">
+                                                        {{ slot.morning_start.strftime('%I:%M %p') }} - {{ slot.morning_end.strftime('%I:%M %p') }}
+                                                    </button>
+                                                {% endif %}
+                                            {% else %}
+                                                <button type="button" class="btn btn-sm btn-secondary w-100" disabled>Not Available</button>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if slot.evening_start and slot.evening_end %}
+                                                {% set evening_start_str = slot.evening_start.strftime('%H:%M') %}
+                                                {% set evening_end_str = slot.evening_end.strftime('%H:%M') %}
+                                                {% set is_evening_booked = false %}
+                                                {% if booked_appointments %}
+                                                    {% for apt in booked_appointments %}
+                                                        {% if apt.date == current_date and apt.time >= slot.evening_start and apt.time <= slot.evening_end %}
+                                                            {% set is_evening_booked = true %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endif %}
+                                                {% if is_evening_booked or (selected_date == date_str and selected_time and selected_time >= evening_start_str and selected_time <= evening_end_str) %}
+                                                    <button type="button" class="btn btn-sm btn-danger w-100" disabled>
+                                                        {{ slot.evening_start.strftime('%I:%M %p') }} - {{ slot.evening_end.strftime('%I:%M %p') }}
+                                                        {% if is_evening_booked %}
+                                                            <br><small>Booked</small>
+                                                        {% elif selected_date == date_str and selected_time %}
+                                                            <br><small>Selected</small>
+                                                        {% endif %}
+                                                    </button>
+                                                {% else %}
+                                                    <button type="button" class="btn btn-sm btn-success w-100 slot-button" 
+                                                            data-date="{{ date_str }}" 
+                                                            data-time="{{ evening_start_str }}"
+                                                            onclick="selectSlot(this, '{{ date_str }}', '{{ evening_start_str }}', '{{ slot.evening_start.strftime('%I:%M %p') }} - {{ slot.evening_end.strftime('%I:%M %p') }}')">
+                                                        {{ slot.evening_start.strftime('%I:%M %p') }} - {{ slot.evening_end.strftime('%I:%M %p') }}
+                                                    </button>
+                                                {% endif %}
+                                            {% else %}
+                                                <button type="button" class="btn btn-sm btn-secondary w-100" disabled>Not Available</button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if not availability_dict or availability_dict|length == 0 %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> No availability set for the next 7 days. Please contact the doctor directly.
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if selected_date and selected_time %}
+                    <div class="alert alert-success">
+                        <strong>Selected Slot:</strong> {{ selected_date }} at {{ selected_time }}
                     </div>
                     {% endif %}
-                    <div class="mb-3">
-                        <label for="time" class="form-label">Time <span class="text-danger">*</span></label>
-                        <input type="time" class="form-control" id="time" name="time" required value="{{ selected_time or '' }}">
-                        <div class="invalid-feedback">Please select a time.</div>
-                        <small class="text-muted">Select your preferred time (avoid booked slots above)</small>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> Doctor has not set availability for the next 7 days. Please contact the doctor directly or select a date and time manually.
                     </div>
+                    <div class="mb-3">
+                        <label for="date_manual" class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="date_manual" name="date" required>
+                        <small class="text-muted">Appointments can be booked up to 7 days in advance</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="time_manual" class="form-label">Time <span class="text-danger">*</span></label>
+                        <input type="time" class="form-control" id="time_manual" name="time" required>
+                        <small class="text-muted">Select your preferred time</small>
+                    </div>
+                    {% endif %}
                     <div class="mb-3">
                         <label for="reason" class="form-label">Reason for Visit</label>
                         <textarea class="form-control" id="reason" name="reason" rows="3" placeholder="Brief reason for the appointment" maxlength="500"></textarea>
@@ -84,21 +185,104 @@
 
 {% block extra_js %}
 <script>
-    // Set minimum date to today
-    const dateInput = document.getElementById('date');
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.min = today;
+    // Function to select a time slot
+    function selectSlot(button, dateStr, timeStr, displayText) {
+        console.log('Selecting slot:', dateStr, timeStr, displayText);
+        
+        const dateInput = document.getElementById('date');
+        const timeInput = document.getElementById('time');
+        
+        if (!dateInput || !timeInput) {
+            console.error('Date or time input not found');
+            alert('Error: Form inputs not found. Please refresh the page.');
+            return;
+        }
+        
+        // Set the hidden input values
+        dateInput.value = dateStr;
+        timeInput.value = timeStr;
+        
+        console.log('Set date to:', dateInput.value);
+        console.log('Set time to:', timeInput.value);
+        
+        // Remove previous selections
+        document.querySelectorAll('.slot-button').forEach(btn => {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-success');
+        });
+        
+        // Highlight selected slot
+        if (button) {
+            button.classList.remove('btn-success');
+            button.classList.add('btn-primary');
+        }
+        
+        // Remove existing alert if any
+        const form = document.getElementById('bookAppointmentForm');
+        const existingAlert = form.querySelector('.alert-success:not(.alert-dismissible)');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+        
+        // Show confirmation
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            <strong>Selected Slot:</strong> ${dateStr} at ${displayText}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        form.insertBefore(alertDiv, form.firstChild);
+        
+        // Scroll to form submit button
+        setTimeout(() => {
+            const submitBtn = document.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 100);
+        
+        // Enable the form submission
+        dateInput.removeAttribute('disabled');
+        timeInput.removeAttribute('disabled');
+    }
     
-    // Set maximum date to 7 days from today
-    const maxDate = new Date();
-    maxDate.setDate(maxDate.getDate() + 7);
-    dateInput.max = maxDate.toISOString().split('T')[0];
-    
-    // Validate time slot is not in the past for today's date
-    const timeInput = document.getElementById('time');
+    // Form validation
     const form = document.getElementById('bookAppointmentForm');
+    const dateInput = document.getElementById('date');
+    const timeInput = document.getElementById('time');
+    
+    // Manual date/time inputs (if availability not set)
+    const dateManual = document.getElementById('date_manual');
+    const timeManual = document.getElementById('time_manual');
+    
+    if (dateManual && timeManual) {
+        // Set minimum date to today
+        const today = new Date().toISOString().split('T')[0];
+        dateManual.min = today;
+        
+        // Set maximum date to 7 days from today
+        const maxDate = new Date();
+        maxDate.setDate(maxDate.getDate() + 7);
+        dateManual.max = maxDate.toISOString().split('T')[0];
+        
+        // Update hidden inputs when manual inputs change
+        dateManual.addEventListener('change', function() {
+            dateInput.value = this.value;
+        });
+        
+        timeManual.addEventListener('change', function() {
+            timeInput.value = this.value;
+        });
+    }
     
     form.addEventListener('submit', function(event) {
+        if (!dateInput.value || !timeInput.value) {
+            event.preventDefault();
+            event.stopPropagation();
+            alert('Please select a time slot before submitting.');
+            return false;
+        }
+        
         const selectedDate = new Date(dateInput.value);
         const selectedTime = timeInput.value;
         const today = new Date();
@@ -113,10 +297,8 @@
             if (appointmentTime < now) {
                 event.preventDefault();
                 event.stopPropagation();
-                timeInput.setCustomValidity('Cannot book appointments in the past');
-                timeInput.classList.add('is-invalid');
-            } else {
-                timeInput.setCustomValidity('');
+                alert('Cannot book appointments in the past. Please select a future time.');
+                return false;
             }
         }
         
@@ -127,16 +309,18 @@
         form.classList.add('was-validated');
     });
     
-    // Clear time validation when date or time changes
-    dateInput.addEventListener('change', function() {
-        timeInput.setCustomValidity('');
-        timeInput.classList.remove('is-invalid');
+    // Highlight selected slot on page load
+    {% if selected_date and selected_time %}
+    document.addEventListener('DOMContentLoaded', function() {
+        const slotButtons = document.querySelectorAll('.slot-button');
+        slotButtons.forEach(btn => {
+            if (btn.dataset.date === '{{ selected_date }}' && btn.dataset.time === '{{ selected_time }}') {
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-primary');
+            }
+        });
     });
-    
-    timeInput.addEventListener('change', function() {
-        this.setCustomValidity('');
-        this.classList.remove('is-invalid');
-    });
+    {% endif %}
 </script>
 {% endblock %}
 
