@@ -69,9 +69,9 @@ def index():
 def login():
     """Login page for all user types"""
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        role = request.form.get('role')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        role = request.form.get('role', '').strip()
         
         if not username or not password or not role:
             flash('Please fill in all fields.', 'danger')
@@ -79,11 +79,17 @@ def login():
         
         user = None
         if role == 'admin':
-            user = Admin.query.filter_by(username=username).first()
+            user = Admin.query.filter(func.lower(Admin.username) == func.lower(username)).first()
         elif role == 'doctor':
-            user = Doctor.query.filter_by(username=username, is_active=True).first()
+            user = Doctor.query.filter(
+                func.lower(Doctor.username) == func.lower(username),
+                Doctor.is_active == True
+            ).first()
         elif role == 'patient':
-            user = Patient.query.filter_by(username=username, is_active=True).first()
+            user = Patient.query.filter(
+                func.lower(Patient.username) == func.lower(username),
+                Patient.is_active == True
+            ).first()
         
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
@@ -99,7 +105,17 @@ def login():
             elif role == 'patient':
                 return redirect(url_for('patient_dashboard'))
         else:
-            flash('Invalid username, password, or account is inactive.', 'danger')
+            if user:
+                # User exists but password is wrong
+                flash('Invalid password. Please check your password and try again.', 'danger')
+            else:
+                # User doesn't exist or is inactive
+                if role == 'doctor':
+                    flash('Invalid username, doctor account not found, or account is inactive. Please contact admin.', 'danger')
+                elif role == 'patient':
+                    flash('Invalid username, patient account not found, or account is inactive. Please contact admin or register.', 'danger')
+                else:
+                    flash('Invalid username or password.', 'danger')
     
     return render_template('login.html')
 
@@ -107,12 +123,12 @@ def login():
 def register():
     """Patient registration page"""
     if request.method == 'POST':
-        username = request.form.get('username')
+        username = request.form.get('username', '').strip()
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
-        email = request.form.get('email')
-        name = request.form.get('name')
-        phone = request.form.get('phone')
+        email = request.form.get('email', '').strip()
+        name = request.form.get('name', '').strip()
+        phone = request.form.get('phone', '').strip() if request.form.get('phone') else None
         address = request.form.get('address')
         date_of_birth = request.form.get('date_of_birth')
         gender = request.form.get('gender')
@@ -289,12 +305,12 @@ def admin_doctors():
 def admin_add_doctor():
     """Add a new doctor"""
     if request.method == 'POST':
-        username = request.form.get('username')
+        username = request.form.get('username', '').strip()
         password = request.form.get('password')
-        email = request.form.get('email')
-        name = request.form.get('name')
-        phone = request.form.get('phone')
-        specialization = request.form.get('specialization')
+        email = request.form.get('email', '').strip()
+        name = request.form.get('name', '').strip()
+        phone = request.form.get('phone', '').strip() or None
+        specialization = request.form.get('specialization', '').strip()
         qualifications = request.form.get('qualifications')
         experience = request.form.get('experience')
         profile_description = request.form.get('profile_description')
@@ -369,14 +385,14 @@ def admin_add_doctor():
             departments = Department.query.all()
             return render_template('admin/add_doctor.html', departments=departments)
         
-        # Check if username already exists
-        if Doctor.query.filter_by(username=username).first():
+        # Check if username already exists (case-insensitive)
+        if Doctor.query.filter(func.lower(Doctor.username) == func.lower(username)).first():
             flash('Username already exists. Please choose another.', 'danger')
             departments = Department.query.all()
             return render_template('admin/add_doctor.html', departments=departments)
         
-        # Check if email already exists
-        if Doctor.query.filter_by(email=email).first():
+        # Check if email already exists (case-insensitive)
+        if Doctor.query.filter(func.lower(Doctor.email) == func.lower(email)).first():
             flash('Email already exists. Please use another email.', 'danger')
             departments = Department.query.all()
             return render_template('admin/add_doctor.html', departments=departments)
@@ -417,11 +433,17 @@ def admin_add_doctor():
             return redirect(url_for('admin_doctors'))
         except Exception as e:
             db.session.rollback()
-            flash('An error occurred while adding the doctor. Please try again.', 'danger')
+            import traceback
+            print(f"Error adding doctor: {e}")
+            print(traceback.format_exc())
+            flash(f'An error occurred while adding the doctor: {str(e)}. Please try again.', 'danger')
             departments = Department.query.all()
             return render_template('admin/add_doctor.html', departments=departments)
     
-    departments = Department.query.all()
+    # GET request - load departments for dropdown
+    departments = Department.query.order_by(Department.name).all()
+    if not departments:
+        flash('No departments available. Please add departments first.', 'warning')
     return render_template('admin/add_doctor.html', departments=departments)
 
 @app.route('/admin/doctors/<int:doctor_id>/edit', methods=['GET', 'POST'])
@@ -462,7 +484,7 @@ def admin_edit_doctor(doctor_id):
             db.session.rollback()
             flash('An error occurred while updating the doctor. Please try again.', 'danger')
     
-    departments = Department.query.all()
+    departments = Department.query.order_by(Department.name).all()
     return render_template('admin/edit_doctor.html', doctor=doctor, departments=departments)
 
 @app.route('/admin/doctors/<int:doctor_id>/delete', methods=['POST'])
@@ -755,6 +777,14 @@ def doctor_dashboard():
         Appointment.date <= week_end,
         Appointment.status == 'Booked'
     ).order_by(Appointment.date, Appointment.time).all()
+    
+    # Add patient history count for each appointment
+    for appointment in upcoming_appointments:
+        appointment.patient_history_count = Appointment.query.filter(
+            Appointment.patient_id == appointment.patient_id,
+            Appointment.doctor_id == doctor_id,
+            Appointment.status == 'Completed'
+        ).count()
     
     # Get all assigned patients
     patient_ids = db.session.query(Appointment.patient_id).filter(
@@ -1297,8 +1327,20 @@ def patient_book_appointment(doctor_id):
         
         if not appointment_date or not appointment_time:
             flash('Please select both date and time.', 'danger')
+            # Get availability for next 7 days
+            today = date.today()
+            availability_slots = DoctorAvailability.query.filter(
+                DoctorAvailability.doctor_id == doctor_id,
+                DoctorAvailability.date >= today,
+                DoctorAvailability.date <= today + timedelta(days=7)
+            ).order_by(DoctorAvailability.date).all()
+            availability_dict = {slot.date: slot for slot in availability_slots}
+            dates = [today + timedelta(days=i) for i in range(7)]
+            
             # Get booked appointments for the selected date to show conflicts
-            selected_date = request.form.get('date')
+            selected_date = request.form.get('date', '')
+            selected_time = request.form.get('time', '')
+            booked_appointments = []
             if selected_date:
                 try:
                     check_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
@@ -1307,30 +1349,78 @@ def patient_book_appointment(doctor_id):
                         Appointment.date == check_date,
                         Appointment.status.in_(['Booked', 'Completed'])
                     ).order_by(Appointment.time).all()
-                    return render_template('patient/book_appointment.html', 
-                                         doctor=doctor, 
-                                         selected_date=selected_date,
-                                         booked_appointments=booked_appointments)
                 except ValueError:
                     pass
-            return render_template('patient/book_appointment.html', doctor=doctor)
+            
+            return render_template('patient/book_appointment.html', 
+                                 doctor=doctor, 
+                                 selected_date=selected_date,
+                                 selected_time=selected_time,
+                                 booked_appointments=booked_appointments,
+                                 availability_dict=availability_dict,
+                                 dates=dates)
         
         try:
             apt_date = datetime.strptime(appointment_date, '%Y-%m-%d').date()
             apt_time = datetime.strptime(appointment_time, '%H:%M').time()
         except ValueError:
             flash('Invalid date or time format.', 'danger')
-            return render_template('patient/book_appointment.html', doctor=doctor)
+            # Get availability for error display
+            today = date.today()
+            availability_slots = DoctorAvailability.query.filter(
+                DoctorAvailability.doctor_id == doctor_id,
+                DoctorAvailability.date >= today,
+                DoctorAvailability.date <= today + timedelta(days=7)
+            ).order_by(DoctorAvailability.date).all()
+            availability_dict = {slot.date: slot for slot in availability_slots}
+            dates = [today + timedelta(days=i) for i in range(7)]
+            return render_template('patient/book_appointment.html', 
+                                 doctor=doctor,
+                                 selected_date=appointment_date,
+                                 selected_time=appointment_time,
+                                 booked_appointments=[],
+                                 availability_dict=availability_dict,
+                                 dates=dates)
         
         # Check if date is in the past
         if apt_date < date.today():
             flash('Cannot book appointments in the past.', 'danger')
-            return render_template('patient/book_appointment.html', doctor=doctor)
+            # Get availability for error display
+            today = date.today()
+            availability_slots = DoctorAvailability.query.filter(
+                DoctorAvailability.doctor_id == doctor_id,
+                DoctorAvailability.date >= today,
+                DoctorAvailability.date <= today + timedelta(days=7)
+            ).order_by(DoctorAvailability.date).all()
+            availability_dict = {slot.date: slot for slot in availability_slots}
+            dates = [today + timedelta(days=i) for i in range(7)]
+            return render_template('patient/book_appointment.html', 
+                                 doctor=doctor,
+                                 selected_date=appointment_date,
+                                 selected_time=appointment_time,
+                                 booked_appointments=[],
+                                 availability_dict=availability_dict,
+                                 dates=dates)
         
         # Check if date is more than 7 days in the future
         if apt_date > date.today() + timedelta(days=7):
             flash('Can only book appointments up to 7 days in advance.', 'danger')
-            return render_template('patient/book_appointment.html', doctor=doctor)
+            # Get availability for error display
+            today = date.today()
+            availability_slots = DoctorAvailability.query.filter(
+                DoctorAvailability.doctor_id == doctor_id,
+                DoctorAvailability.date >= today,
+                DoctorAvailability.date <= today + timedelta(days=7)
+            ).order_by(DoctorAvailability.date).all()
+            availability_dict = {slot.date: slot for slot in availability_slots}
+            dates = [today + timedelta(days=i) for i in range(7)]
+            return render_template('patient/book_appointment.html', 
+                                 doctor=doctor,
+                                 selected_date=appointment_date,
+                                 selected_time=appointment_time,
+                                 booked_appointments=[],
+                                 availability_dict=availability_dict,
+                                 dates=dates)
         
         # Check for double booking (same doctor, same date, same time, status Booked or Completed)
         if not check_appointment_availability(doctor_id, apt_date, apt_time):
@@ -1347,6 +1437,16 @@ def patient_book_appointment(doctor_id):
             else:
                 flash('This time slot is not available. Please choose another time.', 'danger')
             
+            # Get availability for error display
+            today = date.today()
+            availability_slots = DoctorAvailability.query.filter(
+                DoctorAvailability.doctor_id == doctor_id,
+                DoctorAvailability.date >= today,
+                DoctorAvailability.date <= today + timedelta(days=7)
+            ).order_by(DoctorAvailability.date).all()
+            availability_dict = {slot.date: slot for slot in availability_slots}
+            dates = [today + timedelta(days=i) for i in range(7)]
+            
             # Show booked appointments for the selected date
             booked_appointments = Appointment.query.filter(
                 Appointment.doctor_id == doctor_id,
@@ -1358,7 +1458,9 @@ def patient_book_appointment(doctor_id):
                                  doctor=doctor,
                                  selected_date=appointment_date,
                                  selected_time=appointment_time,
-                                 booked_appointments=booked_appointments)
+                                 booked_appointments=booked_appointments,
+                                 availability_dict=availability_dict,
+                                 dates=dates)
         
         # Create new appointment
         try:
@@ -1377,10 +1479,42 @@ def patient_book_appointment(doctor_id):
             return redirect(url_for('patient_dashboard'))
         except Exception as e:
             db.session.rollback()
-            flash('An error occurred while booking the appointment. Please try again.', 'danger')
+            import traceback
+            print(f"Error booking appointment: {e}")
+            print(traceback.format_exc())
+            flash(f'An error occurred while booking the appointment: {str(e)}. Please try again.', 'danger')
+            # Get availability for error display
+            today = date.today()
+            availability_slots = DoctorAvailability.query.filter(
+                DoctorAvailability.doctor_id == doctor_id,
+                DoctorAvailability.date >= today,
+                DoctorAvailability.date <= today + timedelta(days=7)
+            ).order_by(DoctorAvailability.date).all()
+            availability_dict = {slot.date: slot for slot in availability_slots}
+            dates = [today + timedelta(days=i) for i in range(7)]
+            return render_template('patient/book_appointment.html', 
+                                 doctor=doctor,
+                                 selected_date=appointment_date,
+                                 selected_time=appointment_time,
+                                 booked_appointments=[],
+                                 availability_dict=availability_dict,
+                                 dates=dates)
+    
+    # Get availability for next 7 days
+    today = date.today()
+    availability_slots = DoctorAvailability.query.filter(
+        DoctorAvailability.doctor_id == doctor_id,
+        DoctorAvailability.date >= today,
+        DoctorAvailability.date <= today + timedelta(days=7)
+    ).order_by(DoctorAvailability.date).all()
+    
+    # Create availability dict for template
+    availability_dict = {slot.date: slot for slot in availability_slots}
+    dates = [today + timedelta(days=i) for i in range(7)]
     
     # For GET request, check if a date is selected to show booked slots
     selected_date = request.args.get('date', '')
+    selected_time = request.args.get('time', '')
     booked_appointments = []
     if selected_date:
         try:
@@ -1396,7 +1530,10 @@ def patient_book_appointment(doctor_id):
     return render_template('patient/book_appointment.html', 
                          doctor=doctor,
                          selected_date=selected_date,
-                         booked_appointments=booked_appointments)
+                         selected_time=selected_time,
+                         booked_appointments=booked_appointments,
+                         availability_dict=availability_dict,
+                         dates=dates)
 
 # Patient - View Appointment
 @app.route('/patient/appointments/<int:appointment_id>')
