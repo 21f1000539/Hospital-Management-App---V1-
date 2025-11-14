@@ -58,11 +58,23 @@
                         <div class="col-md-6 mb-3">
                             <label for="department_id" class="form-label">Department</label>
                             <select class="form-select" id="department_id" name="department_id">
-                                <option value="">Select Department</option>
-                                {% for department in departments %}
-                                <option value="{{ department.id }}">{{ department.name }}</option>
-                                {% endfor %}
+                                <option value="">Select Department (Optional)</option>
+                                {% if departments %}
+                                    {% for department in departments %}
+                                    <option value="{{ department.id }}">{{ department.name }}</option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="" disabled>No departments available</option>
+                                {% endif %}
                             </select>
+                            {% if not departments %}
+                            <small class="text-warning">
+                                <i class="bi bi-exclamation-triangle"></i> No departments available. 
+                                <a href="{{ url_for('admin_departments') }}">Add departments here</a>.
+                            </small>
+                            {% else %}
+                            <small class="text-muted">Department selection is optional. You can add departments from the Departments page.</small>
+                            {% endif %}
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="qualifications" class="form-label">Qualifications</label>
