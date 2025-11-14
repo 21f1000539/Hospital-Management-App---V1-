@@ -86,9 +86,11 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                {% set ns = namespace(has_available=false) %}
                                 {% for current_date in dates %}
                                 {% set slot = availability_dict.get(current_date) %}
                                 {% if slot and slot.is_available %}
+                                    {% set ns.has_available = true %}
                                 <tr>
                                     <td>{{ current_date.strftime('%d/%m/%Y') }}<br><small>{{ current_date.strftime('%A') }}</small></td>
                                     <td>
@@ -111,7 +113,7 @@
                             </tbody>
                         </table>
                     </div>
-                    {% if not availability_dict or not any(slot.is_available for slot in availability_dict.values()) %}
+                    {% if not availability_dict or not ns.has_available %}
                     <p class="text-muted">No structured availability set. Please contact the doctor directly.</p>
                     {% endif %}
                 {% elif doctor.availability %}
