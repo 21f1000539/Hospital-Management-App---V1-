@@ -1,7 +1,28 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from database import db
 from models import Admin, Doctor, Patient, Department, Appointment, Treatment, DoctorAvailability
+
+# Flask-Login setup
+login_manager = LoginManager()
+login_manager.login_view = 'login'
+login_manager.login_message_category = 'warning'
+
+@login_manager.user_loader
+def load_user(user_id):
+    role = session.get('role')
+    user = None
+    if role == 'admin':
+        user = Admin.query.get(int(user_id))
+    elif role == 'doctor':
+        user = Doctor.query.get(int(user_id))
+    elif role == 'patient':
+        user = Patient.query.get(int(user_id))
+    
+    if user:
+        user.role = role
+    return user
 from functools import wraps
 from datetime import datetime, date, timedelta
 from sqlalchemy import or_, and_, func, extract
@@ -11,24 +32,19 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///hospital_management.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+login_manager.init_app(app)
 
 # Initialize db with app
 db.init_app(app)
 
 # Role-based decorator for route protection
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
+# Using Flask-Login's @login_required decorator directly; custom wrapper removed
 
 def admin_required(f):
     @wraps(f)
+    @login_required
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session or session.get('role') != 'admin':
+        if getattr(current_user, 'role', None) != 'admin':
             flash('Admin access required.', 'danger')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
@@ -36,8 +52,9 @@ def admin_required(f):
 
 def doctor_required(f):
     @wraps(f)
+    @login_required
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session or session.get('role') != 'doctor':
+        if getattr(current_user, 'role', None) != 'doctor':
             flash('Doctor access required.', 'danger')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
@@ -45,8 +62,9 @@ def doctor_required(f):
 
 def patient_required(f):
     @wraps(f)
+    @login_required
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session or session.get('role') != 'patient':
+        if getattr(current_user, 'role', None) != 'patient':
             flash('Patient access required.', 'danger')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
@@ -55,8 +73,8 @@ def patient_required(f):
 @app.route('/')
 def index():
     """Home page - redirects to login if not authenticated"""
-    if 'user_id' in session:
-        role = session.get('role')
+    if current_user.is_authenticated:
+        role = getattr(current_user, 'role', None)
         if role == 'admin':
             return redirect(url_for('admin_dashboard'))
         elif role == 'doctor':
@@ -92,11 +110,13 @@ def login():
             ).first()
         
         if user and check_password_hash(user.password, password):
-            session['user_id'] = user.id
-            session['username'] = user.username
+            # Use Flask-Login to log in
+            # Use Flask-Login to log in
+            # We need to attach the role to the user object so current_user.role works
+            user.role = role
+            login_user(user)
+            # Store role in session for convenience
             session['role'] = role
-            session['name'] = user.name
-            
             flash(f'Welcome back, {user.name}!', 'success')
             if role == 'admin':
                 return redirect(url_for('admin_dashboard'))
@@ -106,10 +126,8 @@ def login():
                 return redirect(url_for('patient_dashboard'))
         else:
             if user:
-                # User exists but password is wrong
                 flash('Invalid password. Please check your password and try again.', 'danger')
             else:
-                # User doesn't exist or is inactive
                 if role == 'doctor':
                     flash('Invalid username, doctor account not found, or account is inactive. Please contact admin.', 'danger')
                 elif role == 'patient':
@@ -235,6 +253,7 @@ def register():
 @app.route('/logout')
 def logout():
     """Logout and clear session"""
+    logout_user()
     session.clear()
     flash('You have been logged out successfully.', 'info')
     return redirect(url_for('login'))
@@ -754,7 +773,7 @@ def admin_add_department():
 @doctor_required
 def doctor_dashboard():
     """Doctor dashboard"""
-    doctor_id = session.get('user_id')
+    doctor_id = current_user.id
     doctor = Doctor.query.get(doctor_id)
     
     if not doctor:
@@ -845,7 +864,7 @@ def doctor_dashboard():
 @doctor_required
 def doctor_appointments():
     """View all appointments for doctor"""
-    doctor_id = session.get('user_id')
+    doctor_id = current_user.id
     status_filter = request.args.get('status', '')
     date_filter = request.args.get('date', '')
     
@@ -873,7 +892,7 @@ def doctor_appointments():
 @doctor_required
 def doctor_view_appointment(appointment_id):
     """View appointment details"""
-    doctor_id = session.get('user_id')
+    doctor_id = current_user.id
     appointment = Appointment.query.get_or_404(appointment_id)
     
     # Verify appointment belongs to this doctor
@@ -898,7 +917,7 @@ def doctor_view_appointment(appointment_id):
 @doctor_required
 def doctor_update_appointment_status(appointment_id):
     """Update appointment status (Completed or Cancelled)"""
-    doctor_id = session.get('user_id')
+    doctor_id = current_user.id
     appointment = Appointment.query.get_or_404(appointment_id)
     
     # Verify appointment belongs to this doctor
@@ -929,7 +948,7 @@ def doctor_update_appointment_status(appointment_id):
 @doctor_required
 def doctor_add_treatment(appointment_id):
     """Add treatment for an appointment"""
-    doctor_id = session.get('user_id')
+    doctor_id = current_user.id
     appointment = Appointment.query.get_or_404(appointment_id)
     
     # Verify appointment belongs to this doctor
@@ -994,7 +1013,7 @@ def doctor_add_treatment(appointment_id):
 @doctor_required
 def doctor_view_patient_history(patient_id):
     """View complete patient medical history"""
-    doctor_id = session.get('user_id')
+    doctor_id = current_user.id
     patient = Patient.query.get_or_404(patient_id)
     
     # Get all appointments for this patient with this doctor
@@ -1023,7 +1042,7 @@ def doctor_view_patient_history(patient_id):
 @doctor_required
 def doctor_update_availability():
     """Update doctor availability for next 7 days"""
-    doctor_id = session.get('user_id')
+    doctor_id = current_user.id
     doctor = Doctor.query.get(doctor_id)
     
     if not doctor:
@@ -1111,7 +1130,7 @@ def doctor_update_availability():
 @patient_required
 def patient_dashboard():
     """Patient dashboard"""
-    patient_id = session.get('user_id')
+    patient_id = current_user.id
     patient = Patient.query.get(patient_id)
     
     if not patient:
@@ -1178,7 +1197,7 @@ def patient_dashboard():
 @patient_required
 def patient_profile():
     """View and update patient profile"""
-    patient_id = session.get('user_id')
+    patient_id = current_user.id
     patient = Patient.query.get(patient_id)
     
     if not patient:
@@ -1317,7 +1336,7 @@ def check_appointment_availability(doctor_id, apt_date, apt_time, exclude_appoin
 @patient_required
 def patient_book_appointment(doctor_id):
     """Book an appointment with a doctor"""
-    patient_id = session.get('user_id')
+    patient_id = current_user.id
     doctor = Doctor.query.filter_by(id=doctor_id, is_active=True).first_or_404()
     
     if request.method == 'POST':
@@ -1540,7 +1559,7 @@ def patient_book_appointment(doctor_id):
 @patient_required
 def patient_view_appointment(appointment_id):
     """View appointment details"""
-    patient_id = session.get('user_id')
+    patient_id = current_user.id
     appointment = Appointment.query.get_or_404(appointment_id)
     
     # Verify appointment belongs to this patient
@@ -1555,7 +1574,7 @@ def patient_view_appointment(appointment_id):
 @patient_required
 def patient_cancel_appointment(appointment_id):
     """Cancel an appointment"""
-    patient_id = session.get('user_id')
+    patient_id = current_user.id
     appointment = Appointment.query.get_or_404(appointment_id)
     
     # Verify appointment belongs to this patient
@@ -1584,7 +1603,7 @@ def patient_cancel_appointment(appointment_id):
 @patient_required
 def patient_reschedule_appointment(appointment_id):
     """Reschedule an appointment"""
-    patient_id = session.get('user_id')
+    patient_id = current_user.id
     appointment = Appointment.query.get_or_404(appointment_id)
     
     # Verify appointment belongs to this patient
@@ -1690,7 +1709,7 @@ def patient_reschedule_appointment(appointment_id):
 def api_auth_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
+        if not current_user.is_authenticated:
             return jsonify({'error': 'Authentication required'}), 401
         return f(*args, **kwargs)
     return decorated_function

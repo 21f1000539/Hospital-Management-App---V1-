@@ -1,7 +1,8 @@
 from database import db
 from datetime import datetime
+from flask_login import UserMixin
 
-class Admin(db.Model):
+class Admin(UserMixin, db.Model):
     """Admin model for hospital staff"""
     __tablename__ = 'admin'
     
@@ -30,7 +31,7 @@ class Department(db.Model):
     def __repr__(self):
         return f'<Department {self.name}>'
 
-class Doctor(db.Model):
+class Doctor(UserMixin, db.Model):
     """Doctor model"""
     __tablename__ = 'doctor'
     
@@ -56,7 +57,7 @@ class Doctor(db.Model):
     def __repr__(self):
         return f'<Doctor {self.name}>'
 
-class Patient(db.Model):
+class Patient(UserMixin, db.Model):
     """Patient model"""
     __tablename__ = 'patient'
     
