@@ -59,7 +59,6 @@ Hospital-Management-App---V1-/
 ```
 
 ## Milestones
-
 ### Milestone 1: Database Models and Schema Setup ✅
 - Created database models for Admin, Doctor, Patient, Department, Appointment, and Treatment
 - Defined relationships between tables
