@@ -58,7 +58,6 @@ Hospital-Management-App---V1-/
 └── README.md          # Project documentation
 ```
 
-## Milestones
 ### Milestone 1: Database Models and Schema Setup ✅
 - Created database models for Admin, Doctor, Patient, Department, Appointment, and Treatment
 - Defined relationships between tables
