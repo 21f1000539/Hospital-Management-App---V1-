@@ -31,7 +31,7 @@ python init_db.py
 python app.py
 ```
 
-4. Access the application at `http://localhost:5000`
+Access the application at `http://localhost:5000`
 
 ## Default Admin Credentials
 
@@ -125,3 +125,4 @@ Hospital-Management-App---V1-/
 - Cancelled appointments free up time slots for new bookings
 - Enhanced appointment history views with treatment indicators
 - All appointment and treatment records are permanently stored
+
